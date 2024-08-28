@@ -1,6 +1,6 @@
 import { Game } from './classes/Game.js';
 import { Move } from './classes/Move.js';
-import { Player } from './classes/Player.js';
+import { Player, Strategy } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 
 const canvas: any = document.querySelector('#canvas');
@@ -8,8 +8,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Player(Color.WHITE);
-let blackPlayer = new Player(Color.BLACK);
+let whitePlayer = new Player(Color.WHITE, Strategy.MATERIAL_FIRST);
+let blackPlayer = new Player(Color.BLACK, Strategy.MATERIAL_FIRST);
 let weHaveAWinner = false;
 
 const returnPieceFromStartingPosition = (x: number, y: number) => {

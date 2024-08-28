@@ -44,6 +44,7 @@ export abstract class Piece {
   public positionY: number;
   private spriteLoaded = false;
   abstract spriteXPosition: number;
+  abstract value: number;
   readonly color: Color;
   readonly sprite: any;
 
@@ -69,6 +70,7 @@ export abstract class Piece {
 
 export class King extends Piece {
   spriteXPosition = 0;
+  value = Infinity;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
@@ -91,6 +93,7 @@ export class King extends Piece {
 
 export class Queen extends Piece {
   spriteXPosition = 45;
+  value = 9;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
@@ -113,6 +116,7 @@ export class Queen extends Piece {
 
 export class Rook extends Piece {
   spriteXPosition = 180;
+  value = 5;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
@@ -131,6 +135,7 @@ export class Rook extends Piece {
 
 export class Bishop extends Piece {
   spriteXPosition = 90;
+  value = 3;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
@@ -149,6 +154,7 @@ export class Bishop extends Piece {
 
 export class Knight extends Piece {
   spriteXPosition = 135;
+  value = 3;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
@@ -171,6 +177,7 @@ export class Knight extends Piece {
 
 export class Pawn extends Piece {
   spriteXPosition = 225;
+  value = 1;
   public firstMove = true;
 
   constructor(x: number, y: number, color: Color) {
