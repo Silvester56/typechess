@@ -33,18 +33,21 @@ const returnPieceFromStartingPosition = (x: number, y: number) => {
 allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
 const movePiece = (move: Move): void => {
-  let piece = allPieces.find(p => p.positionX === move.startX && p.positionY === move.startY);
+  let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
   let enemyPieceIndex = allPieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
 
-  if (piece) {
-    piece.positionX = move.endX;
-    piece.positionY = move.endY;
-    if (piece instanceof Pawn) {
-      piece.firstMove = false;
+  if (allPieces[allyPieceIndex]) {
+    allPieces[allyPieceIndex].positionX = move.endX;
+    allPieces[allyPieceIndex].positionY = move.endY;
+    if (allPieces[allyPieceIndex] instanceof Pawn) {
+      allPieces[allyPieceIndex].firstMove = false;
+      if ((allPieces[allyPieceIndex].color === Color.WHITE && allPieces[allyPieceIndex].positionY === 0) || (allPieces[allyPieceIndex].color === Color.BLACK && allPieces[allyPieceIndex].positionY === 7)) {
+        allPieces[allyPieceIndex] = new Queen(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY, allPieces[allyPieceIndex].color);
+      }
     }
     if (enemyPieceIndex > -1) {
       if (allPieces[enemyPieceIndex] instanceof King) {
-        console.log(piece.color === Color.WHITE ? "White" : "Black", " WON !!!");
+        console.log(allPieces[allyPieceIndex].color === Color.WHITE ? "White" : "Black", " WON !!!");
         weHaveAWinner = true;
       }
       allPieces.splice(enemyPieceIndex, 1);
@@ -66,7 +69,9 @@ async function startGame() {
   
   while (whiteCanPlay && blackCanPlay && !weHaveAWinner) {
     whiteCanPlay = await playerDelay(whitePlayer, 500);
-    blackCanPlay = await playerDelay(blackPlayer, 500);
+    if (!weHaveAWinner) {
+      blackCanPlay = await playerDelay(blackPlayer, 500);
+    }
   }
   if (!whiteCanPlay) {
     console.log("White can't play");
