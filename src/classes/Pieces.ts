@@ -2,18 +2,20 @@ import { Move } from './Move.js';
 
 export enum Color { WHITE, BLACK };
 
+enum UnallowedCaseWhileSeeking { EMPTY, ENEMY, UNDER_THREAT, NONE }
+
 const withinBounds = (x: number, y: number): boolean => {
   return (x >= 0 && y >= 0 && x <= 7 && y <= 7);
 }
 
-const seekPossibleMoves = (piece: Piece, seekerXCallback: Function, seekerYCallback: Function, otherPieces: Piece[], oneMove: boolean = false): Move[] => {
+const seekPossibleMoves = (piece: Piece, seekerXCallback: Function, seekerYCallback: Function, otherPieces: Piece[], movesLimit: number = Infinity, unallowedCase: UnallowedCaseWhileSeeking = UnallowedCaseWhileSeeking.NONE): Move[] => {
   let seekerX = piece.positionX;
   let seekerY = piece.positionY;
   let result = [];
   let encounteredPiece;
   let search = true;
-  while (search) {
-    search = !oneMove;
+  while (search && movesLimit > 0) {
+    movesLimit--;
     seekerX = seekerXCallback(seekerX);
     seekerY = seekerYCallback(seekerY);
     if (withinBounds(seekerX, seekerY)) {
@@ -22,10 +24,12 @@ const seekPossibleMoves = (piece: Piece, seekerXCallback: Function, seekerYCallb
         if (encounteredPiece.color === piece.color) {
           search = false;
         } else {
-          result.push(new Move(piece.positionX, piece.positionY, seekerX, seekerY));
+          if (unallowedCase !== UnallowedCaseWhileSeeking.ENEMY) {
+            result.push(new Move(piece.positionX, piece.positionY, seekerX, seekerY));
+          }
           search = false;
         }
-      } else {
+      } else if (unallowedCase !== UnallowedCaseWhileSeeking.EMPTY) {
         result.push(new Move(piece.positionX, piece.positionY, seekerX, seekerY));
       }
     } else {
@@ -73,14 +77,14 @@ export class King extends Piece {
   possibleMoves(otherPieces: Piece[]): Move[] {
     let result: Move[] = [];
 
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x + 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x - 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x + 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x - 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x + 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x - 1, otherPieces, true));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x + 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x - 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x + 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x - 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x + 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x - 1, otherPieces, 1));
     return result;
   }
 }
@@ -153,14 +157,14 @@ export class Knight extends Piece {
   possibleMoves(otherPieces: Piece[]): Move[] {
     let result: Move[] = [];
 
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 2, (x: number) => x + 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 2, (x: number) => x - 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 2, (x: number) => x + 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 2, (x: number) => x - 1, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x + 2, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x + 2, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x - 2, otherPieces, true));
-    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x - 2, otherPieces, true));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 2, (x: number) => x + 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 2, (x: number) => x - 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 2, (x: number) => x + 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 2, (x: number) => x - 1, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x + 2, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x + 2, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x - 2, otherPieces, 1));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x - 2, otherPieces, 1));
     return result;
   }
 }
@@ -175,18 +179,11 @@ export class Pawn extends Piece {
 
   possibleMoves(otherPieces: Piece[]): Move[] {
     let result: Move[] = [];
+    let direction: number = this.color === Color.WHITE ? -1 : 1;
 
-    if (this.color === Color.WHITE) {
-      result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x - 1, otherPieces, true));
-      if (this.firstMove) {
-        result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x - 2, otherPieces, true));
-      }
-    } else {
-      result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x + 1, otherPieces, true));
-      if (this.firstMove) {
-        result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x + 2, otherPieces, true));
-      }
-    }
+    result = result.concat(seekPossibleMoves(this, (x: number) => x - 1, (x: number) => x + direction, otherPieces, 1, UnallowedCaseWhileSeeking.EMPTY));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x + 1, (x: number) => x + direction, otherPieces, 1, UnallowedCaseWhileSeeking.EMPTY));
+    result = result.concat(seekPossibleMoves(this, (x: number) => x, (x: number) => x + direction, otherPieces, this.firstMove ? 2 : 1, UnallowedCaseWhileSeeking.ENEMY));
     return result;
   }
 }
