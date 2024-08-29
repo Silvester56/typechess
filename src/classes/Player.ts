@@ -14,7 +14,12 @@ export class Player {
 
   play(allPieces: Piece[]): boolean {
     let moves: Move[] = [];
-    moves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves);
+    let isPlayable = (p: Piece) => p.color === this.color;
+
+    if (allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces)) {
+      isPlayable = (p: Piece) => p.color === this.color && p instanceof King;
+    }
+    moves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves);
 
     if (moves.length > 0) {
       if (this.strategy === Strategy.RANDOM) {
