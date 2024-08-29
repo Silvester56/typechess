@@ -7,8 +7,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Player(Color.WHITE, Strategy.RANDOM);
-let blackPlayer = new Player(Color.BLACK, Strategy.RANDOM);
+let whitePlayer = new Player(Color.WHITE, Strategy.MATERIAL_FIRST);
+let blackPlayer = new Player(Color.BLACK, Strategy.HYBRID);
 
 const returnPieceFromStartingPosition = (x: number, y: number) => {
   if (y === 1) {

@@ -1,11 +1,7 @@
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './Pieces.js';
 import { Move } from './Move.js';
 
-export enum Strategy { RANDOM, MATERIAL_FIRST }
-
-const getMoveValue = (allPieces: Piece[], move: Move): number => {
-  return allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
-}
+export enum Strategy { RANDOM, MATERIAL_FIRST, CENTER_FIRST, HYBRID }
 
 export class Player {
   private color: Color;
@@ -24,12 +20,33 @@ export class Player {
       if (this.strategy === Strategy.RANDOM) {
         return this.movePiece(allPieces, moves[Math.floor(Math.random() * moves.length)]);
       } else if (this.strategy === Strategy.MATERIAL_FIRST) {
-        moves.sort((a, b) => getMoveValue(allPieces, b) - getMoveValue(allPieces, a));
+        moves.sort((a, b) => this.getMoveValue(allPieces, b) - this.getMoveValue(allPieces, a));
+        return this.movePiece(allPieces, moves[0]);
+      } else if (this.strategy === Strategy.CENTER_FIRST || this.strategy === Strategy.HYBRID) {
+        moves.sort((a, b) => this.getMoveValue(allPieces, a) - this.getMoveValue(allPieces, b));
         return this.movePiece(allPieces, moves[0]);
       }
     }
     console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");
     return false;
+  }
+
+  getMoveValue(allPieces: Piece[], move: Move): number {
+    let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
+    let distanceToCenter = Math.sqrt((move.endX - 3.5) * (move.endX - 3.5) + (move.endY - 3.5) * (move.endY - 3.5));
+
+    if (this.strategy === Strategy.MATERIAL_FIRST) {
+      return enemyPieceValue;
+    } else if (this.strategy === Strategy.CENTER_FIRST) {
+      if ((move.startX === 3 || move.startX === 4) && (move.startY === 3 || move.startY === 4)) {
+        return Infinity;
+      }
+      return distanceToCenter;
+    }
+    else if (this.strategy === Strategy.HYBRID) {
+      return distanceToCenter - enemyPieceValue;
+    }
+    return 0;
   }
 
   movePiece(allPieces: Piece[], move: Move): boolean {
