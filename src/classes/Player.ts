@@ -1,11 +1,12 @@
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './Pieces.js';
-import { Move } from './Move.js';
+import { Move, MoveType } from './Move.js';
 
-export enum Strategy { RANDOM, MATERIAL_FIRST, CENTER_FIRST, HYBRID }
+export enum Strategy { RANDOM, MATERIAL_FIRST, CENTER_FIRST, HYBRID, HYBRID_CASTLE_EARLY }
 
 export class Player {
   private color: Color;
   private strategy: Strategy;
+  private hasCastle: boolean = false;
 
   constructor(c: Color, s: Strategy) {
     this.color = c;
@@ -24,34 +25,49 @@ export class Player {
     if (moves.length > 0) {
       if (this.strategy === Strategy.RANDOM) {
         return this.movePiece(allPieces, moves[Math.floor(Math.random() * moves.length)]);
-      } else if (this.strategy === Strategy.MATERIAL_FIRST) {
-        moves.sort((a, b) => this.getMoveValue(allPieces, b) - this.getMoveValue(allPieces, a));
-        return this.movePiece(allPieces, moves[0]);
-      } else if (this.strategy === Strategy.CENTER_FIRST || this.strategy === Strategy.HYBRID) {
-        moves.sort((a, b) => this.getMoveValue(allPieces, a) - this.getMoveValue(allPieces, b));
-        return this.movePiece(allPieces, moves[0]);
       }
+      moves.sort((a, b) => this.getMoveValue(allPieces, b) - this.getMoveValue(allPieces, a));
+      return this.movePiece(allPieces, moves[0]);
     }
     console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");
     return false;
   }
 
   getMoveValue(allPieces: Piece[], move: Move): number {
+    let allyPiece = allPieces.find(p => p.positionX === move.startX && p.positionY === move.startY);
     let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
     let distanceToCenter = Math.sqrt((move.endX - 3.5) * (move.endX - 3.5) + (move.endY - 3.5) * (move.endY - 3.5));
+    let result = 0;
 
+    if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
+      return Infinity;      
+    }
     if (this.strategy === Strategy.MATERIAL_FIRST) {
       return enemyPieceValue;
     } else if (this.strategy === Strategy.CENTER_FIRST) {
       if ((move.startX === 3 || move.startX === 4) && (move.startY === 3 || move.startY === 4)) {
-        return Infinity;
+        return -Infinity;
       }
-      return distanceToCenter;
+      return -distanceToCenter;
+    } else if (this.strategy === Strategy.HYBRID) {
+      return enemyPieceValue - distanceToCenter;
+    } else if (this.strategy === Strategy.HYBRID_CASTLE_EARLY && allyPiece) {
+      if (this.hasCastle) {
+        return enemyPieceValue - distanceToCenter;
+      }
+      if (allyPiece instanceof Rook) {
+        return -Infinity;
+      }
+      if (allyPiece instanceof King) {
+        return -Infinity;
+      }
+      result = allyPiece?.value;
+      if (allyPiece.firstMove) {
+        result = result + 10;
+      }
+      result = result - Math.abs(allyPiece.positionX - 3.5);
     }
-    else if (this.strategy === Strategy.HYBRID) {
-      return distanceToCenter - enemyPieceValue;
-    }
-    return 0;
+    return result;
   }
 
   movePiece(allPieces: Piece[], move: Move): boolean {
@@ -62,11 +78,23 @@ export class Player {
     if (allPieces[allyPieceIndex]) {
       allPieces[allyPieceIndex].positionX = move.endX;
       allPieces[allyPieceIndex].positionY = move.endY;
-      if (allPieces[allyPieceIndex] instanceof Pawn) {
-        allPieces[allyPieceIndex].firstMove = false;
-        if ((allPieces[allyPieceIndex].color === Color.WHITE && allPieces[allyPieceIndex].positionY === 0) || (allPieces[allyPieceIndex].color === Color.BLACK && allPieces[allyPieceIndex].positionY === 7)) {
-          allPieces[allyPieceIndex] = this.promote(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY);
+      allPieces[allyPieceIndex].firstMove = false;
+      if (move.type === MoveType.SHORT_CASTLING) {
+        if (move.additionalPieceToMove) {
+          move.additionalPieceToMove.positionX = 5;
         }
+        this.hasCastle = true;
+        console.log(this.color === Color.WHITE ? "White" : "Black", " short castle");
+      }
+      if (move.type === MoveType.LONG_CASTLING) {
+        if (move.additionalPieceToMove) {
+          move.additionalPieceToMove.positionX = 3;
+        }
+        this.hasCastle = true;
+        console.log(this.color === Color.WHITE ? "White" : "Black", " long castle");
+      }
+      if ((allPieces[allyPieceIndex].color === Color.WHITE && allPieces[allyPieceIndex].positionY === 0) || (allPieces[allyPieceIndex].color === Color.BLACK && allPieces[allyPieceIndex].positionY === 7) && allPieces[allyPieceIndex] instanceof Pawn) {
+        allPieces[allyPieceIndex] = this.promote(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY);
       }
       keepOnPlaying =  true;
       if (enemyPieceIndex > -1) {

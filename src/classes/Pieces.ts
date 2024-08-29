@@ -1,4 +1,4 @@
-import { Move } from './Move.js';
+import { Move, MoveType } from './Move.js';
 
 export enum Color { WHITE, BLACK };
 
@@ -18,6 +18,7 @@ const isCaseUnderThreat = (x: number, y: number, allPieces: Piece[], allyColor: 
 export abstract class Piece {
   public positionX: number;
   public positionY: number;
+  public firstMove = true;
   private spriteLoaded = false;
   abstract spriteXPosition: number;
   abstract value: number;
@@ -90,9 +91,41 @@ export class King extends Piece {
     super(x, y, color);
   }
 
+  seekPossibleCastlingMoves(seekerXCallback: Function, allPieces: Piece[]) {
+    let seekerX = this.positionX;
+    let seekerY = this.positionY;
+    let search = true;
+    let result: Move[] = [];
+    let encounteredPiece;
+
+    while(search) {
+      seekerX = seekerXCallback(seekerX);
+      if (withinBounds(seekerX, seekerY)) {
+        encounteredPiece = allPieces.find(p => p.positionX === seekerX && p.positionY === seekerY);
+        if (Math.abs(this.positionX - seekerX) <= 2 && isCaseUnderThreat(seekerX, seekerY, allPieces, this.color)) {
+          return [];
+        }
+        if (encounteredPiece) {
+          if (encounteredPiece.color === this.color && encounteredPiece.firstMove && encounteredPiece instanceof Rook) {
+            result.push(new Move(this.positionX, this.positionY, seekerX === 7 ? 6 : 2, seekerY, seekerX === 7 ? MoveType.SHORT_CASTLING : MoveType.LONG_CASTLING, encounteredPiece));
+          } else {
+            return [];
+          }
+        }
+      } else {
+        search = false;
+      }
+    }
+    return result;
+  }
+
   possibleMoves(allPieces: Piece[]): Move[] {
     let result: Move[] = [];
 
+    if (this.firstMove && !this.isUnderThreat(allPieces)) {
+      result = result.concat(this.seekPossibleCastlingMoves((x: number) => x + 1, allPieces));
+      result = result.concat(this.seekPossibleCastlingMoves((x: number) => x - 1, allPieces));
+    }
     result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x + 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
     result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x - 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
     result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x + 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
@@ -192,7 +225,6 @@ export class Knight extends Piece {
 export class Pawn extends Piece {
   spriteXPosition = 225;
   value = 1;
-  public firstMove = true;
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);

@@ -7,8 +7,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Player(Color.WHITE, Strategy.MATERIAL_FIRST);
-let blackPlayer = new Player(Color.BLACK, Strategy.HYBRID);
+let whitePlayer = new Player(Color.WHITE, Strategy.HYBRID_CASTLE_EARLY);
+let blackPlayer = new Player(Color.BLACK, Strategy.RANDOM);
 
 const returnPieceFromStartingPosition = (x: number, y: number) => {
   if (y === 1) {
@@ -39,7 +39,7 @@ async function playerDelay(p: Player, delay: number): Promise<boolean> {
 let button = document.querySelector('#start');
 
 async function startGame() {
-  while (await playerDelay(whitePlayer, 500) && await playerDelay(blackPlayer, 500)) {
+  while (await playerDelay(whitePlayer, 400) && await playerDelay(blackPlayer, 400)) {
     
   }
 }
