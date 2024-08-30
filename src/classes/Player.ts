@@ -21,7 +21,7 @@ export class Player {
     moves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves);
 
     if (moves.length > 0) {
-      moves.sort((a, b) => this.strategy.getMoveValue(allPieces, b) - this.strategy.getMoveValue(allPieces, a));
+      moves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color) - this.strategy.getMoveValue(allPieces, a, this.color));
       return this.movePiece(allPieces, moves[0]);
     }
     console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");

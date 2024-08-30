@@ -11,22 +11,23 @@ let allPieces: Piece[];
 let whitePlayer = new Player(Color.WHITE, new Strategy(1, 1, 1, Infinity, 0));
 let blackPlayer = new Player(Color.BLACK, new Strategy(1, 1, 1, Infinity, 0));
 
-const returnPieceFromStartingPosition = (x: number, y: number) => {
-  if (y === 1) {
-    return new Pawn(x, y, Color.BLACK);
-  } else if (y === 6) {
-    return new Pawn(x, y, Color.WHITE);
-  } else if (x === 0 || x === 7) {
-    return new Rook(x, y, y === 0 ? Color.BLACK : Color.WHITE);
-  } else if (x === 1 || x === 6) {
-    return new Knight(x, y, y === 0 ? Color.BLACK : Color.WHITE);
-  } else if (x === 2 || x === 5) {
-    return new Bishop(x, y, y === 0 ? Color.BLACK : Color.WHITE);
-  } else if (x === 3) {
-    return new Queen(x, y, y === 0 ? Color.BLACK : Color.WHITE);
-  } else {
-    return new King(x, y, y === 0 ? Color.BLACK : Color.WHITE);
+const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
+  let color = y < 4 ? Color.BLACK : Color.WHITE;
+
+  if (y === 0 || y === 7) {
+    if (x === 0 || x === 7) {
+      return new Rook(x, y, color);
+    } else if (x === 1 || x === 6) {
+      return new Knight(x, y, color);
+    } else if (x === 2 || x === 5) {
+      return new Bishop(x, y, color);
+    } else if (x === 3) {
+      return new Queen(x, y, color);
+    } else {
+      return new King(x, y, color);
+    }
   }
+  return new Pawn(x, y, color);
 };
 
 allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
@@ -40,7 +41,7 @@ async function playerDelay(p: Player, delay: number): Promise<boolean> {
 let button = document.querySelector('#start');
 
 async function startGame() {
-  while (await playerDelay(whitePlayer, 400) && await playerDelay(blackPlayer, 400)) {
+  while (await playerDelay(whitePlayer, 1000) && await playerDelay(blackPlayer, 1000)) {
     
   }
 }
