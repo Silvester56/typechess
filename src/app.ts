@@ -1,14 +1,15 @@
 import { Game } from './classes/Game.js';
-import { Player, Strategy } from './classes/Player.js';
+import { Player } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
+import { Strategy } from './classes/Strategy.js';
 
 const canvas: any = document.querySelector('#canvas');
 const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Player(Color.WHITE, Strategy.HYBRID_CASTLE_EARLY);
-let blackPlayer = new Player(Color.BLACK, Strategy.RANDOM);
+let whitePlayer = new Player(Color.WHITE, new Strategy(1, 1, 1, Infinity, 0));
+let blackPlayer = new Player(Color.BLACK, new Strategy(1, 1, 1, Infinity, 0));
 
 const returnPieceFromStartingPosition = (x: number, y: number) => {
   if (y === 1) {
