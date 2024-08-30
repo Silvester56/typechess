@@ -31,12 +31,25 @@ export class Player {
   movePiece(allPieces: Piece[], move: Move): boolean {
     let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
     let enemyPieceIndex = allPieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
+    let lastEnPassantTargetPieceIndex = allPieces.findIndex(p => p.enPassantTarget);
     let keepOnPlaying = false;
   
     if (allPieces[allyPieceIndex]) {
+      if (lastEnPassantTargetPieceIndex > -1) {
+        allPieces[lastEnPassantTargetPieceIndex].enPassantTarget = false;
+      }
       allPieces[allyPieceIndex].positionX = move.endX;
       allPieces[allyPieceIndex].positionY = move.endY;
       allPieces[allyPieceIndex].firstMove = false;
+      if (allPieces[allyPieceIndex] instanceof Pawn) {
+        if (move.range() === 2) {
+          allPieces[allyPieceIndex].enPassantTarget = true;
+        }
+      }
+      if (move.type === MoveType.EN_PASSANT) {
+        enemyPieceIndex = lastEnPassantTargetPieceIndex;
+        console.log("En passant...");
+      }
       if (move.type === MoveType.SHORT_CASTLING) {
         if (move.additionalPieceToMove) {
           move.additionalPieceToMove.positionX = 5;

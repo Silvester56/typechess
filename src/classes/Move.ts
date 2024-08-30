@@ -18,4 +18,8 @@ export class Move {
     this.type = t;
     this.additionalPieceToMove = additionalPiece;
   }
+
+  range(): number {
+    return Math.sqrt((this.startX - this.endX) * (this.startX - this.endX) + (this.startY - this.endY) * (this.startY - this.endY))
+  }
 }

@@ -19,6 +19,7 @@ export abstract class Piece {
   public positionX: number;
   public positionY: number;
   public firstMove = true;
+  public enPassantTarget = false;
   private spriteLoaded = false;
   abstract spriteXPosition: number;
   abstract value: number;
@@ -230,10 +231,29 @@ export class Pawn extends Piece {
     super(x, y, color);
   }
 
+  seekEnPassantMoves(seekerXOffset: number, allPieces: Piece[]) {
+    let seekerX = this.positionX + seekerXOffset;
+    let seekerY = this.positionY;
+    let result: Move[] = [];
+    let encounteredPiece;
+
+    if (withinBounds(seekerX, seekerY)) {
+      encounteredPiece = allPieces.find(p => p.positionX === seekerX && p.positionY === seekerY);
+      if (encounteredPiece) {
+        if (encounteredPiece.color !== this.color && encounteredPiece.enPassantTarget) {
+          result.push(new Move(this.positionX, this.positionY, seekerX, seekerY + (this.color === Color.WHITE ? -1 : 1), MoveType.EN_PASSANT, encounteredPiece));
+        }
+      }
+    }
+    return result;
+  }
+
   possibleMoves(allPieces: Piece[]): Move[] {
     let result: Move[] = [];
     let direction: number = this.color === Color.WHITE ? -1 : 1;
 
+    result = result.concat(this.seekEnPassantMoves(-1, allPieces));
+    result = result.concat(this.seekEnPassantMoves(1, allPieces));
     result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x + direction, allPieces, 1, UnallowedCaseWhileSeeking.EMPTY));
     result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x + direction, allPieces, 1, UnallowedCaseWhileSeeking.EMPTY));
     result = result.concat(this.seekPossibleMoves((x: number) => x, (x: number) => x + direction, allPieces, this.firstMove ? 2 : 1, UnallowedCaseWhileSeeking.ENEMY));
