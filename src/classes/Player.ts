@@ -48,24 +48,22 @@ export class Player {
       }
       if (move.type === MoveType.EN_PASSANT) {
         enemyPieceIndex = lastEnPassantTargetPieceIndex;
-        console.log("En passant...");
       }
       if (move.type === MoveType.SHORT_CASTLING) {
         if (move.additionalPieceToMove) {
           move.additionalPieceToMove.positionX = 5;
         }
-        console.log(this.color === Color.WHITE ? "White" : "Black", " short castle");
       }
       if (move.type === MoveType.LONG_CASTLING) {
         if (move.additionalPieceToMove) {
           move.additionalPieceToMove.positionX = 3;
         }
-        console.log(this.color === Color.WHITE ? "White" : "Black", " long castle");
       }
       if ((allPieces[allyPieceIndex].color === Color.WHITE && allPieces[allyPieceIndex].positionY === 0) || (allPieces[allyPieceIndex].color === Color.BLACK && allPieces[allyPieceIndex].positionY === 7) && allPieces[allyPieceIndex] instanceof Pawn) {
         allPieces[allyPieceIndex] = this.promote(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY);
       }
       keepOnPlaying =  true;
+      console.log(move.toString());
       if (enemyPieceIndex > -1) {
         if (allPieces[enemyPieceIndex] instanceof King) {
           console.log(this.color === Color.WHITE ? "White" : "Black", " WON !!!");

@@ -2,6 +2,10 @@ import { Piece } from "./Pieces";
 
 export enum MoveType { NORMAL, SHORT_CASTLING, LONG_CASTLING, EN_PASSANT }
 
+const positionToString = (x: number, y: number): string => {
+  return "abcdefgh".split("")[x] + "87654321".split("")[y];
+}
+
 export class Move {
   readonly startX: number;
   readonly startY: number;
@@ -21,5 +25,24 @@ export class Move {
 
   range(): number {
     return Math.sqrt((this.startX - this.endX) * (this.startX - this.endX) + (this.startY - this.endY) * (this.startY - this.endY))
+  }
+
+  toString(): string {
+    let result = positionToString(this.startX, this.startY) + " -> " + positionToString(this.endX, this.endY);
+
+    switch (this.type) {
+      case MoveType.SHORT_CASTLING:
+        result = result + " short castle";
+        break;
+      case MoveType.LONG_CASTLING:
+        result = result + " long castle";
+        break;
+      case MoveType.EN_PASSANT:
+        result = result + " en passant...";
+        break;    
+      default:
+        break;
+    }
+    return result;
   }
 }
