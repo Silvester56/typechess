@@ -8,8 +8,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Bot(Color.WHITE, new Strategy(1, 1, 1, Infinity, 0));
-let blackPlayer = new Bot(Color.BLACK, new Strategy(1, 1, 1, Infinity, 0));
+let whitePlayer = new Bot(Color.WHITE, new Strategy(1, 1, 1, 10, 0));
+let blackPlayer = new Bot(Color.BLACK, new Strategy(1, 1, 1, 10, 0));
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;

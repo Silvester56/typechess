@@ -74,7 +74,6 @@ export class Bot extends Player {
   }
 
   play(allPieces: Piece[]): Promise<boolean> {
-    console.log(this.color === Color.WHITE ? "White" : "Black", " turn");
     return new Promise(resolve => {
       setTimeout(() => {
         let possibleMoves: Move[] = [];
@@ -92,7 +91,7 @@ export class Bot extends Player {
           console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");
           resolve(false);
         }
-      }, 1000);
+      }, 250);
     });
   }
 
@@ -114,7 +113,6 @@ export class Human extends Player {
   }
 
   play(allPieces: Piece[], canvas: any): Promise<boolean> {
-    console.log(this.color === Color.WHITE ? "White" : "Black", " turn");
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let isPlayable = (p: Piece) => p.color === this.color;

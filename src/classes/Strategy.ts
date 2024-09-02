@@ -1,29 +1,48 @@
-import { Color, Piece } from "./Pieces.js";
+import { Bishop, Color, isCaseUnderThreat, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
 import { Move, MoveType } from "./Move.js";
 
 export class Strategy {
-    private materialCoefficient: number;
-    private positionCoefficient: number;
-    private randomCoefficient: number;
+    private capturingCoefficient: number;
+    private runAwayCoefficient: number;
+    private riskAversionCoefficient: number;
     private castlingValue: number;
     readonly pieceToPromoteIndex: number;
   
-    constructor(mc: number, pc: number, rc: number, cv: number, pt: number) {
-      this.materialCoefficient = mc;
-      this.positionCoefficient = pc;
-      this.randomCoefficient = rc;
-      this.castlingValue = cv;
-      this.pieceToPromoteIndex = pt;
+    constructor(capCoeff: number, runCoeff: number, riskCoeff: number, castValue: number, pieceProm: number) {
+      this.capturingCoefficient = capCoeff;
+      this.runAwayCoefficient = runCoeff;
+      this.riskAversionCoefficient = riskCoeff;
+      this.castlingValue = castValue;
+      this.pieceToPromoteIndex = pieceProm;
     }
 
     getMoveValue(allPieces: Piece[], move: Move, playerColor: Color): number {
         let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
-        let distanceToEnd = playerColor === Color.WHITE ? move.endY : (7 - move.endY);
+        let distanceToEnd = playerColor === Color.WHITE ? move.startY : (7 - move.startY);
+        let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
+        let base = 0;
 
         if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
             return this.castlingValue;
         }
-        return (this. materialCoefficient * enemyPieceValue) - (this.positionCoefficient * distanceToEnd) + (this.randomCoefficient * Math.random());
+        if (allPieces[allyPieceIndex] instanceof Pawn) {
+          base = (move.startX > 5 || move.startX < 2) ? 0 : 3;
+        } else if (allPieces[allyPieceIndex] instanceof Rook) {
+          base = 0;
+        } else if (allPieces[allyPieceIndex] instanceof Bishop) {
+          base = 2;
+        } else if (allPieces[allyPieceIndex] instanceof Knight) {
+          base = distanceToEnd === 7 ? 3 : 1;
+        } else if (allPieces[allyPieceIndex] instanceof Queen) {
+          base = 1;
+        }
+        if (isCaseUnderThreat(move.startX, move.startY, allPieces, playerColor)) {
+          base = base + this.runAwayCoefficient * allPieces[allyPieceIndex].value;
+        }
+        if (isCaseUnderThreat(move.endX, move.endY, allPieces, playerColor)) {
+          base = base - this.riskAversionCoefficient * allPieces[allyPieceIndex].value;
+        }
+        return base + this. capturingCoefficient * enemyPieceValue;
     }
   }
   

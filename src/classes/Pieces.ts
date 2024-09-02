@@ -8,7 +8,7 @@ const withinBounds = (x: number, y: number): boolean => {
   return (x >= 0 && y >= 0 && x <= 7 && y <= 7);
 }
 
-const isCaseUnderThreat = (x: number, y: number, allPieces: Piece[], allyColor: Color): boolean => {
+export const isCaseUnderThreat = (x: number, y: number, allPieces: Piece[], allyColor: Color): boolean => {
   let moves: Move[] = [];
 
   moves = allPieces.filter(p => p.color !== allyColor && !(p instanceof King)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves);
