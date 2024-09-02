@@ -1,3 +1,10 @@
 body {
   background-color: #362D24;
 }
+body .hidden {
+  display: none !important;
+}
+#canvas {
+  display: block;
+  margin: 30px auto;
+}

@@ -2,6 +2,8 @@ import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './Pieces.
 import { Move, MoveType } from './Move.js';
 import { Strategy } from './Strategy.js';
 
+export enum GameState { PLAY, WHITE_WIN, BLACK_WIN, DRAW, OUT_OF_TURNS };
+
 export abstract class Player {
   readonly color: Color;
 
@@ -9,13 +11,13 @@ export abstract class Player {
     this.color = c;
   }
 
-  abstract play(allPieces: Piece[], canvas: any): Promise<boolean>;
+  abstract play(allPieces: Piece[], canvas: any): Promise<GameState>;
 
-  movePiece(allPieces: Piece[], move: Move): boolean {
+  movePiece(allPieces: Piece[], move: Move): GameState {
     let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
     let enemyPieceIndex = allPieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
     let lastEnPassantTargetPieceIndex = allPieces.findIndex(p => p.enPassantTarget);
-    let keepOnPlaying = false;
+    let gameState = GameState.PLAY;
   
     if (allPieces[allyPieceIndex]) {
       if (lastEnPassantTargetPieceIndex > -1) {
@@ -47,33 +49,35 @@ export abstract class Player {
           allPieces[allyPieceIndex] = this.promote(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY);
         }
       }
-      keepOnPlaying =  true;
-      console.log(move.toString());
       if (enemyPieceIndex > -1) {
         if (allPieces[enemyPieceIndex] instanceof King) {
-          console.log(this.color === Color.WHITE ? "White" : "Black", " WON !!!");
-          keepOnPlaying =  false;
+          gameState = this.color === Color.WHITE ? GameState.WHITE_WIN : GameState.BLACK_WIN;
         }
         allPieces.splice(enemyPieceIndex, 1);
       }
     } else {
       console.log(this.color === Color.WHITE ? "White" : "Black", " doesn't have a piece at that position");
     }
-    return keepOnPlaying;
+    return gameState;
   }
 
   abstract promote(x: number, y: number): Piece;
 }
 
 export class Bot extends Player {
-  private strategy: Strategy;
+  public strategy: Strategy;
+  public score = {winningScore: 0, materialScore: 0};
+  private lastMove: Move | undefined;
+  private playingDelay: number;
 
-  constructor(c: Color, s: Strategy) {
+  constructor(c: Color, s: Strategy, p: number) {
     super(c);
     this.strategy = s;
+    this.lastMove = undefined;
+    this.playingDelay = p;
   }
 
-  play(allPieces: Piece[]): Promise<boolean> {
+  play(allPieces: Piece[]): Promise<GameState> {
     return new Promise(resolve => {
       setTimeout(() => {
         let possibleMoves: Move[] = [];
@@ -85,13 +89,13 @@ export class Bot extends Player {
         possibleMoves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves);
     
         if (possibleMoves.length > 0) {
-          possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color) - this.strategy.getMoveValue(allPieces, a, this.color));
+          possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove));
+          this.lastMove = possibleMoves[0];
           resolve(this.movePiece(allPieces, possibleMoves[0]));
         } else {
-          console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");
-          resolve(false);
+          resolve(GameState.DRAW);
         }
-      }, 250);
+      }, this.playingDelay);
     });
   }
 
@@ -99,6 +103,22 @@ export class Bot extends Player {
     let possiblePieces = [new Queen(x, y, this.color), new Rook(x, y, this.color), new Bishop(x, y, this.color), new Knight(x, y, this.color)];
 
     return possiblePieces[this.strategy.pieceToPromoteIndex];
+  }
+
+  getScore(allPieces: Piece[], gameState: GameState): {winningScore: number, materialScore: number} {
+    let material = allPieces.filter(p => p.color === this.color && p.value !== Infinity).reduce((acc, cur) => acc + cur.value, 0);
+    let game = 0.5;
+
+    if (gameState === GameState.WHITE_WIN) {
+      game = this.color === Color.WHITE ? 1 : 0;
+    } else if (gameState === GameState.BLACK_WIN) {
+      game = this.color === Color.BLACK ? 1 : 0;
+    }
+    return {winningScore: game, materialScore: material};
+  }
+
+  reproduce(): Bot {
+    return new Bot(this.color, this.strategy.reproduce(), this.playingDelay);
   }
 }
 
@@ -112,7 +132,7 @@ export class Human extends Player {
     this.eventListenerForCanvas = () => null;
   }
 
-  play(allPieces: Piece[], canvas: any): Promise<boolean> {
+  play(allPieces: Piece[], canvas: any): Promise<GameState> {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let isPlayable = (p: Piece) => p.color === this.color;
@@ -139,8 +159,7 @@ export class Human extends Player {
         };
         canvas.addEventListener('mousedown', this.eventListenerForCanvas);
       } else {
-        console.log(this.color === Color.WHITE ? "White" : "Black", " can't play");
-        resolve(false);
+        resolve(GameState.DRAW);
       }
     });
   }

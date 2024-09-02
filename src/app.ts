@@ -1,5 +1,5 @@
 import { Game } from './classes/Game.js';
-import { Bot, Human, Player } from './classes/Player.js';
+import { Bot, Human, Player, GameState } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 import { Strategy } from './classes/Strategy.js';
 
@@ -8,8 +8,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Bot(Color.WHITE, new Strategy(1, 1, 1, 10, 0));
-let blackPlayer = new Bot(Color.BLACK, new Strategy(1, 1, 1, 10, 0));
+let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
+let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -30,28 +30,124 @@ const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   return new Pawn(x, y, color);
 };
 
-allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+const resetScores = (botArray: Bot[]) => {
+  for (let botIndex = 0; botIndex < botArray.length; botIndex++) {
+    botArray[botIndex].score.winningScore = 0;
+    botArray[botIndex].score.materialScore = 0;
+  }
+};
 
-async function startGame() {
-  while (await whitePlayer.play(allPieces) && await blackPlayer.play(allPieces)) {
-    
+const logBotArray = (botArray: Bot[]) => {
+  botArray.forEach((p, index) => {
+    console.log(`${index} ${p.strategy.toString()}`);
+  });
+};
+
+async function startGame(buttonId: number) {
+  let gameState = GameState.PLAY;
+  let generation = 0;
+  let turn: number = 0;
+  let human: Human;
+  let whiteSingleGameScore;
+  let blackSingleGameScore;
+  let stringToLog: string[] = [];
+
+  buttons.forEach(b => b.setAttribute("disabled", "true"));
+  allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+
+  human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
+  if (buttonId !== 3) {
+    while (turn < 50) {
+      gameState = buttonId === 0 ? await human.play(allPieces, canvas) : await whiteBots[0].play(allPieces);
+      if (gameState !== GameState.PLAY) {
+        break;
+      }
+      gameState = buttonId === 1 ? await human.play(allPieces, canvas) : await blackBots[0].play(allPieces);
+      if (gameState !== GameState.PLAY) {
+        break;
+      }
+      gameState = GameState.OUT_OF_TURNS;
+      turn++;
+    }
+    if (gameState === GameState.OUT_OF_TURNS) {
+      console.log("Draw because of turn limit");
+    } else if (gameState === GameState.WHITE_WIN) {
+      console.log("White win");
+    } else if (gameState === GameState.BLACK_WIN) {
+      console.log("Black win");
+    } else if (gameState === GameState.DRAW) {
+      console.log("Draw");
+    }
+  } else {
+    while (generation < 5) {
+      stringToLog = [];
+      resetScores(whiteBots);
+      resetScores(blackBots);
+      console.log("Generation ", generation);
+      for (let whitePlayerIndex = 0; whitePlayerIndex < whiteBots.length; whitePlayerIndex++) {
+        for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
+          turn = 0;
+          while (turn < 50) {
+            gameState = await whiteBots[whitePlayerIndex].play(allPieces);
+            if (gameState !== GameState.PLAY) {
+              break;
+            }
+            gameState = await blackBots[blackPlayerIndex].play(allPieces);
+            if (gameState !== GameState.PLAY) {
+              break;
+            }
+            gameState = GameState.OUT_OF_TURNS;
+            turn++;
+          }
+          if (gameState === GameState.OUT_OF_TURNS) {
+            stringToLog.push("Draw because of turn limit");
+          } else if (gameState === GameState.WHITE_WIN) {
+            stringToLog.push("White win");
+          } else if (gameState === GameState.BLACK_WIN) {
+            stringToLog.push("Black win");
+          } else if (gameState === GameState.DRAW) {
+            stringToLog.push("Draw");
+          }
+          whiteSingleGameScore = whiteBots[whitePlayerIndex].getScore(allPieces, gameState);
+          blackSingleGameScore = blackBots[blackPlayerIndex].getScore(allPieces, gameState);
+          whiteBots[whitePlayerIndex].score.winningScore = whiteBots[whitePlayerIndex].score.winningScore + whiteSingleGameScore.winningScore;
+          whiteBots[whitePlayerIndex].score.materialScore = whiteBots[whitePlayerIndex].score.materialScore + whiteSingleGameScore.materialScore;
+          blackBots[blackPlayerIndex].score.winningScore = blackBots[blackPlayerIndex].score.winningScore + blackSingleGameScore.winningScore;
+          blackBots[blackPlayerIndex].score.materialScore = blackBots[blackPlayerIndex].score.materialScore + blackSingleGameScore.materialScore;
+          allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+        }
+      }
+      whiteBots = whiteBots.sort((a, b) => b.score.winningScore === a.score.winningScore ? b.score.materialScore - a.score.materialScore : b.score.winningScore - a.score.winningScore);
+      blackBots = blackBots.sort((a, b) => b.score.winningScore === a.score.winningScore ? b.score.materialScore - a.score.materialScore : b.score.winningScore - a.score.winningScore);
+      console.log(stringToLog);
+      logBotArray(whiteBots);
+      logBotArray(blackBots);
+      whiteBots.splice(whiteBots.length / 2);
+      blackBots.splice(blackBots.length / 2);
+      whiteBots = whiteBots.concat(whiteBots.map(p => p.reproduce()));
+      blackBots = blackBots.concat(blackBots.map(p => p.reproduce()));
+      generation++;
+    }
   }
 }
 
-let button = document.querySelector('#start');
+let buttons = document.querySelectorAll('.game-mode-button');
 
-if (button) {
-  button.addEventListener("click", () => {
-    button.setAttribute("disabled", "true");
-    startGame();
-  });
+if (buttons) {
+  buttons.forEach(b => b.addEventListener("click", () => {
+    canvas.setAttribute("class", "");
+    b.setAttribute("disabled", "true");
+    startGame(Number(b.id.split("-")[1]));
+  }));
 }
 
 const animationLoop = () => {
   requestAnimationFrame(animationLoop);
   canvasContext.clearRect(0, 0, 500, 500);
   chessGame.draw(canvasContext);
-  allPieces.forEach(piece => piece.draw(canvasContext));
+  if (allPieces) {
+    allPieces.forEach(piece => piece.draw(canvasContext));
+  }
 };
 
 animationLoop();

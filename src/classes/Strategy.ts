@@ -1,6 +1,12 @@
 import { Bishop, Color, isCaseUnderThreat, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
 import { Move, MoveType } from "./Move.js";
 
+const modifyParameter = (x: number) => {
+  let signs = [-1, 1];
+
+  return x + signs[Math.floor(Math.random() * 2)] * Math.random();
+};
+
 export class Strategy {
     private capturingCoefficient: number;
     private runAwayCoefficient: number;
@@ -16,12 +22,19 @@ export class Strategy {
       this.pieceToPromoteIndex = pieceProm;
     }
 
-    getMoveValue(allPieces: Piece[], move: Move, playerColor: Color): number {
+    toString(): string {
+      return `${this.capturingCoefficient} ${this.runAwayCoefficient} ${this.riskAversionCoefficient} ${this.castlingValue}`;
+    }
+
+    getMoveValue(allPieces: Piece[], move: Move, playerColor: Color, lastMove: Move | undefined): number {
         let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
         let distanceToEnd = playerColor === Color.WHITE ? move.startY : (7 - move.startY);
         let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
         let base = 0;
 
+        if (lastMove && lastMove.startX === move.endX && lastMove.startY === move.endY && lastMove.endX === move.startX && lastMove.endY === move.startY) {
+          return -Infinity;
+        }
         if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
             return this.castlingValue;
         }
@@ -43,6 +56,15 @@ export class Strategy {
           base = base - this.riskAversionCoefficient * allPieces[allyPieceIndex].value;
         }
         return base + this. capturingCoefficient * enemyPieceValue;
+    }
+
+    reproduce(): Strategy {
+      return new Strategy(
+        modifyParameter(this.capturingCoefficient),
+        modifyParameter(this.runAwayCoefficient),
+        modifyParameter(this.riskAversionCoefficient),
+        modifyParameter(this.castlingValue),
+        this.pieceToPromoteIndex);
     }
   }
   
