@@ -1,5 +1,5 @@
 import { Game } from './classes/Game.js';
-import { Player } from './classes/Player.js';
+import { Bot, Human, Player } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 import { Strategy } from './classes/Strategy.js';
 
@@ -8,8 +8,8 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whitePlayer = new Player(Color.WHITE, new Strategy(1, 1, 1, Infinity, 0));
-let blackPlayer = new Player(Color.BLACK, new Strategy(1, 1, 1, Infinity, 0));
+let whitePlayer = new Bot(Color.WHITE, new Strategy(1, 1, 1, Infinity, 0));
+let blackPlayer = new Bot(Color.BLACK, new Strategy(1, 1, 1, Infinity, 0));
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -32,19 +32,13 @@ const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
 
 allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
-async function playerDelay(p: Player, delay: number): Promise<boolean> {
-  return new Promise(resolve => {
-    setTimeout(() => resolve(p.play(allPieces)), delay);
-  });
-}
-
-let button = document.querySelector('#start');
-
 async function startGame() {
-  while (await playerDelay(whitePlayer, 1000) && await playerDelay(blackPlayer, 1000)) {
+  while (await whitePlayer.play(allPieces) && await blackPlayer.play(allPieces)) {
     
   }
 }
+
+let button = document.querySelector('#start');
 
 if (button) {
   button.addEventListener("click", () => {
