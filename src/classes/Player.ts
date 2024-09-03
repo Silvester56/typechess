@@ -69,12 +69,14 @@ export class Bot extends Player {
   public score = {winningScore: 0, materialScore: 0};
   private lastMove: Move | undefined;
   private playingDelay: number;
+  private indexOfMoves: number;
 
   constructor(c: Color, s: Strategy, p: number) {
     super(c);
     this.strategy = s;
     this.lastMove = undefined;
     this.playingDelay = p;
+    this.indexOfMoves = 0;
   }
 
   play(allPieces: Piece[]): Promise<GameState> {
@@ -89,8 +91,9 @@ export class Bot extends Player {
         possibleMoves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves);
     
         if (possibleMoves.length > 0) {
-          possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove));
+          possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove, this.indexOfMoves));
           this.lastMove = possibleMoves[0];
+          this.indexOfMoves++;
           resolve(this.movePiece(allPieces, possibleMoves[0]));
         } else {
           resolve(GameState.DRAW);

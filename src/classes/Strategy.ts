@@ -7,6 +7,27 @@ const modifyParameter = (x: number) => {
   return x + signs[Math.floor(Math.random() * 2)] * Math.random();
 };
 
+const getOpeningMoves = (color: Color): Move[] => {
+  let result: Move[] = [];
+
+  if (color === Color.WHITE) {
+    result.push(new Move(3,6,3,4));
+    result.push(new Move(3,6,3,5));
+    result.push(new Move(4,6,4,4));
+    result.push(new Move(4,6,4,5));
+    result.push(new Move(1,7,2,5));
+    result.push(new Move(6,7,5,5));
+  } else {
+    result.push(new Move(3,1,3,3));
+    result.push(new Move(3,1,3,2));
+    result.push(new Move(4,1,4,4));
+    result.push(new Move(4,1,4,2));
+    result.push(new Move(1,0,2,2));
+    result.push(new Move(6,0,5,2));
+  }
+  return result;
+};
+
 export class Strategy {
     private capturingCoefficient: number;
     private runAwayCoefficient: number;
@@ -26,7 +47,7 @@ export class Strategy {
       return `${this.capturingCoefficient} ${this.runAwayCoefficient} ${this.riskAversionCoefficient} ${this.castlingValue}`;
     }
 
-    getMoveValue(allPieces: Piece[], move: Move, playerColor: Color, lastMove: Move | undefined): number {
+    getMoveValue(allPieces: Piece[], move: Move, playerColor: Color, lastMove: Move | undefined, numberOfPreviousMoves: number): number {
         let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
         let distanceToEnd = playerColor === Color.WHITE ? move.startY : (7 - move.startY);
         let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
@@ -37,6 +58,9 @@ export class Strategy {
         }
         if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
             return this.castlingValue;
+        }
+        if (numberOfPreviousMoves < 4 && getOpeningMoves(playerColor).includes(move)) {
+          return 5 + Math.random();
         }
         if (allPieces[allyPieceIndex] instanceof Pawn) {
           base = (move.startX > 5 || move.startX < 2) ? 0 : 3;

@@ -144,7 +144,7 @@ if (buttons) {
 const animationLoop = () => {
   requestAnimationFrame(animationLoop);
   canvasContext.clearRect(0, 0, 500, 500);
-  chessGame.draw(canvasContext);
+  chessGame.draw(canvasContext, true);
   if (allPieces) {
     allPieces.forEach(piece => piece.draw(canvasContext));
   }
