@@ -1,9 +1,38 @@
 body {
   background-color: #362D24;
+  margin: 0;
 }
+
 body .hidden {
   display: none !important;
 }
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.button-container .game-mode-button {
+  background-color: #f2e1c3;
+  color: #c3a082;
+  border: none;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  width: 300px;
+  cursor: pointer;
+}
+
+.button-container .game-mode-button:hover {
+  background-color: #c3a082;
+  color: #f2e1c3;
+}
+
 #canvas {
   display: block;
   margin: 30px auto;
