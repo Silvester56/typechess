@@ -8,10 +8,27 @@ const withinBounds = (x: number, y: number): boolean => {
   return (x >= 0 && y >= 0 && x <= 7 && y <= 7);
 }
 
+const getRingMovesWithNoChecks = (p: Piece | undefined): Move[] => {
+  let result: Move[] = [];
+
+  if (p) {
+    result.push(new Move(p.positionX, p.positionY, p.positionX + 1, p.positionY + 1));
+    result.push(new Move(p.positionX, p.positionY, p.positionX + 1, p.positionY));
+    result.push(new Move(p.positionX, p.positionY, p.positionX + 1, p.positionY - 1));
+    result.push(new Move(p.positionX, p.positionY, p.positionX, p.positionY + 1));
+    result.push(new Move(p.positionX, p.positionY, p.positionX, p.positionY - 1));
+    result.push(new Move(p.positionX, p.positionY, p.positionX - 1, p.positionY + 1));
+    result.push(new Move(p.positionX, p.positionY, p.positionX - 1, p.positionY));
+    result.push(new Move(p.positionX, p.positionY, p.positionX - 1, p.positionY - 1));
+  }
+
+  return result;
+}
+
 export const isCaseUnderThreat = (x: number, y: number, allPieces: Piece[], allyColor: Color): boolean => {
   let moves: Move[] = [];
-
-  moves = allPieces.filter(p => p.color !== allyColor && !(p instanceof King)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves);
+  
+  moves = getRingMovesWithNoChecks(allPieces.find(p => p.color !== allyColor && p instanceof King)).concat(allPieces.filter(p => p.color !== allyColor && !(p instanceof King)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), moves));
   return moves.some(m => m.endX === x && m.endY === y);
 }
 
