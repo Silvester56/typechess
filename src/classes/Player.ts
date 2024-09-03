@@ -50,9 +50,6 @@ export abstract class Player {
         }
       }
       if (enemyPieceIndex > -1) {
-        if (allPieces[enemyPieceIndex] instanceof King) {
-          gameState = this.color === Color.WHITE ? GameState.WHITE_WIN : GameState.BLACK_WIN;
-        }
         allPieces.splice(enemyPieceIndex, 1);
       }
     } else {
@@ -61,8 +58,24 @@ export abstract class Player {
     return gameState;
   }
 
+  kingIsSafeAfterMove(allPieces: Piece[], move: Move) {
+    let futurePieces: Piece[] = allPieces.map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
+    let allyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
+    let enemyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
+    let kingIndex: number;
+
+    futurePieces[allyPieceIndex].positionX = move.endX;
+    futurePieces[allyPieceIndex].positionY = move.endY;
+    if (enemyPieceIndex > -1) {
+      futurePieces.splice(enemyPieceIndex, 1);
+    }
+    kingIndex = futurePieces.findIndex(p => p.color === this.color && p instanceof King);
+    return !futurePieces[kingIndex].isUnderThreat(futurePieces);
+  }
+
   abstract promote(x: number, y: number): Piece;
 }
+
 
 export class Bot extends Player {
   public strategy: Strategy;
@@ -83,20 +96,20 @@ export class Bot extends Player {
     return new Promise(resolve => {
       setTimeout(() => {
         let possibleMoves: Move[] = [];
-        let isPlayable = (p: Piece) => p.color === this.color;
-    
-        if (allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces)) {
-          isPlayable = (p: Piece) => p.color === this.color && p instanceof King;
-        }
-        possibleMoves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves);
-    
+        let check = allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces);
+
+        possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
         if (possibleMoves.length > 0) {
           possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove, this.indexOfMoves));
           this.lastMove = possibleMoves[0];
           this.indexOfMoves++;
           resolve(this.movePiece(allPieces, possibleMoves[0]));
         } else {
-          resolve(GameState.DRAW);
+          if (check) {
+            resolve(this.color === Color.WHITE ? GameState.BLACK_WIN : GameState.WHITE_WIN);
+          } else {
+            resolve(GameState.DRAW);
+          }
         }
       }, this.playingDelay);
     });
@@ -138,13 +151,10 @@ export class Human extends Player {
   play(allPieces: Piece[], canvas: any): Promise<GameState> {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
-      let isPlayable = (p: Piece) => p.color === this.color;
+      let check = allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces);
       let indexOfMove: number = 0;
-  
-      if (allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces)) {
-        isPlayable = (p: Piece) => p.color === this.color && p instanceof King;
-      }
-      possibleMoves = allPieces.filter(p => isPlayable(p)).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves);
+
+      possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
       if (possibleMoves.length > 0) {
         this.eventListenerForCanvas = (event: any) => {
           const rect = canvas.getBoundingClientRect()
@@ -162,7 +172,11 @@ export class Human extends Player {
         };
         canvas.addEventListener('mousedown', this.eventListenerForCanvas);
       } else {
-        resolve(GameState.DRAW);
+        if (check) {
+          resolve(this.color === Color.WHITE ? GameState.BLACK_WIN : GameState.WHITE_WIN);
+        } else {
+          resolve(GameState.DRAW);
+        }
       }
     });
   }

@@ -2,7 +2,7 @@ import { Move, MoveType } from './Move.js';
 
 export enum Color { WHITE, BLACK };
 
-enum UnallowedCaseWhileSeeking { EMPTY, ENEMY, UNDER_THREAT, NONE }
+enum UnallowedCaseWhileSeeking { EMPTY, ENEMY, NONE }
 
 const withinBounds = (x: number, y: number): boolean => {
   return (x >= 0 && y >= 0 && x <= 7 && y <= 7);
@@ -71,9 +71,6 @@ export abstract class Piece {
       seekerX = seekerXCallback(seekerX);
       seekerY = seekerYCallback(seekerY);
       if (withinBounds(seekerX, seekerY)) {
-        if (unallowedCase === UnallowedCaseWhileSeeking.UNDER_THREAT && isCaseUnderThreat(seekerX, seekerY, allPieces, this.color)) {
-          return [];
-        }
         encounteredPiece = allPieces.find(p => p.positionX === seekerX && p.positionY === seekerY);
         if (encounteredPiece) {
           if (encounteredPiece.color === this.color) {
@@ -144,14 +141,14 @@ export class King extends Piece {
       result = result.concat(this.seekPossibleCastlingMoves((x: number) => x + 1, allPieces));
       result = result.concat(this.seekPossibleCastlingMoves((x: number) => x - 1, allPieces));
     }
-    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x + 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x - 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x + 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x - 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x, (x: number) => x + 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
-    result = result.concat(this.seekPossibleMoves((x: number) => x, (x: number) => x - 1, allPieces, 1, UnallowedCaseWhileSeeking.UNDER_THREAT));
+    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x + 1, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x - 1, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x + 1, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x - 1, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x + 1, (x: number) => x, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x - 1, (x: number) => x, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x, (x: number) => x + 1, allPieces, 1));
+    result = result.concat(this.seekPossibleMoves((x: number) => x, (x: number) => x - 1, allPieces, 1));
     return result;
   }
 }
