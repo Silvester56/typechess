@@ -45,4 +45,9 @@ export class Move {
     }
     return result;
   }
+
+  draw (ctx: any) {
+    ctx.fillStyle = "#999999";
+    ctx.fillRect(this.endX * 45 + 11, this.endY * 45 + 11, 22, 22);
+  }
 }

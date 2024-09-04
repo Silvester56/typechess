@@ -11,7 +11,7 @@ export abstract class Player {
     this.color = c;
   }
 
-  abstract play(allPieces: Piece[], canvas: any): Promise<GameState>;
+  abstract play(allPieces: Piece[], canvas: any, drawingCallback: Function): Promise<GameState>;
 
   movePiece(allPieces: Piece[], move: Move): GameState {
     let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
@@ -148,7 +148,7 @@ export class Human extends Player {
     this.eventListenerForCanvas = () => null;
   }
 
-  play(allPieces: Piece[], canvas: any): Promise<GameState> {
+  play(allPieces: Piece[], canvas: any, drawingCallback: Function): Promise<GameState> {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let check = allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces);
@@ -161,6 +161,9 @@ export class Human extends Player {
           const x = event.clientX - rect.left;
           const y = event.clientY - rect.top;
           this.positionArray.push({positionX: Math.floor(x / 45), positionY: Math.floor(y / 45)});
+          if (this.positionArray.length === 1) {
+            drawingCallback(possibleMoves.filter(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY));
+          }
           if (this.positionArray.length === 2) {
             indexOfMove = possibleMoves.findIndex(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY && m.endX === this.positionArray[1].positionX && m.endY === this.positionArray[1].positionY);
             if (indexOfMove > -1) {
@@ -168,6 +171,7 @@ export class Human extends Player {
               canvas.removeEventListener('mousedown', this.eventListenerForCanvas);
             }
             this.positionArray = [];
+            drawingCallback([]);
           }
         };
         canvas.addEventListener('mousedown', this.eventListenerForCanvas);

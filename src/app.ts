@@ -2,6 +2,7 @@ import { Game } from './classes/Game.js';
 import { Bot, Human, Player, GameState } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 import { Strategy } from './classes/Strategy.js';
+import { Move } from './classes/Move.js';
 
 const canvas: any = document.querySelector('#canvas');
 const canvasContext = canvas.getContext('2d');
@@ -10,6 +11,7 @@ const chessGame = new Game();
 let allPieces: Piece[];
 let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
 let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
+let movesToDraw: Move[] = [];
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -47,22 +49,23 @@ async function startGame(buttonId: number) {
   let gameState = GameState.PLAY;
   let generation = 0;
   let turn: number = 0;
+  const turnLimit: number = buttonId < 3 ? Infinity : 50;
   let human: Human;
   let whiteSingleGameScore;
   let blackSingleGameScore;
   let stringToLog: string[] = [];
 
-  buttons.forEach(b => b.setAttribute("disabled", "true"));
+  buttons.forEach(b => b.setAttribute("style", "display: none"));
   allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
   human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
   if (buttonId !== 3) {
-    while (turn < 50) {
-      gameState = buttonId === 0 ? await human.play(allPieces, canvas) : await whiteBots[0].play(allPieces);
+    while (turn < turnLimit) {
+      gameState = buttonId === 0 ? await human.play(allPieces, canvas, (arrayOfMoves: Move[]) => movesToDraw = arrayOfMoves) : await whiteBots[0].play(allPieces);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = buttonId === 1 ? await human.play(allPieces, canvas) : await blackBots[0].play(allPieces);
+      gameState = buttonId === 1 ? await human.play(allPieces, canvas, (arrayOfMoves: Move[]) => movesToDraw = arrayOfMoves) : await blackBots[0].play(allPieces);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -87,7 +90,7 @@ async function startGame(buttonId: number) {
       for (let whitePlayerIndex = 0; whitePlayerIndex < whiteBots.length; whitePlayerIndex++) {
         for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
           turn = 0;
-          while (turn < 50) {
+          while (turn < turnLimit) {
             gameState = await whiteBots[whitePlayerIndex].play(allPieces);
             if (gameState !== GameState.PLAY) {
               break;
@@ -136,7 +139,6 @@ let buttons = document.querySelectorAll('.game-mode-button');
 if (buttons) {
   buttons.forEach(b => b.addEventListener("click", () => {
     canvas.setAttribute("class", "");
-    b.setAttribute("disabled", "true");
     startGame(Number(b.id.split("-")[1]));
   }));
 }
@@ -144,7 +146,8 @@ if (buttons) {
 const animationLoop = () => {
   requestAnimationFrame(animationLoop);
   canvasContext.clearRect(0, 0, 500, 500);
-  chessGame.draw(canvasContext, true);
+  chessGame.draw(canvasContext, false);
+  movesToDraw.forEach(m => m.draw(canvasContext));
   if (allPieces) {
     allPieces.forEach(piece => piece.draw(canvasContext));
   }
