@@ -9,9 +9,10 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
-let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), Math.random(), Math.random(), 10 + Math.random(), 0), 5));
+let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 100));
+let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 100));
 let movesToDraw: Move[] = [];
+let checkToDraw: {positionX: number, positionY: number};
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -45,11 +46,16 @@ const logBotArray = (botArray: Bot[]) => {
   });
 };
 
+const drawAdditionalInformation = (moves: Move[], check: {positionX: number, positionY: number}) => {
+  movesToDraw = moves;
+  checkToDraw = check;
+}
+
 async function startGame(buttonId: number) {
   let gameState = GameState.PLAY;
   let generation = 0;
   let turn: number = 0;
-  const turnLimit: number = buttonId < 3 ? Infinity : 50;
+  const turnLimit: number = buttonId < 2 ? Infinity : 50;
   let human: Human;
   let whiteSingleGameScore;
   let blackSingleGameScore;
@@ -61,11 +67,11 @@ async function startGame(buttonId: number) {
   human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
   if (buttonId !== 3) {
     while (turn < turnLimit) {
-      gameState = buttonId === 0 ? await human.play(allPieces, canvas, (arrayOfMoves: Move[]) => movesToDraw = arrayOfMoves) : await whiteBots[0].play(allPieces);
+      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation) : await whiteBots[0].play(allPieces, drawAdditionalInformation);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = buttonId === 1 ? await human.play(allPieces, canvas, (arrayOfMoves: Move[]) => movesToDraw = arrayOfMoves) : await blackBots[0].play(allPieces);
+      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation) : await blackBots[0].play(allPieces, drawAdditionalInformation);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -91,11 +97,11 @@ async function startGame(buttonId: number) {
         for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whitePlayerIndex].play(allPieces);
+            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackPlayerIndex].play(allPieces);
+            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
@@ -146,7 +152,7 @@ if (buttons) {
 const animationLoop = () => {
   requestAnimationFrame(animationLoop);
   canvasContext.clearRect(0, 0, 500, 500);
-  chessGame.draw(canvasContext, false);
+  chessGame.draw(canvasContext, false, checkToDraw);
   movesToDraw.forEach(m => m.draw(canvasContext));
   if (allPieces) {
     allPieces.forEach(piece => piece.draw(canvasContext));

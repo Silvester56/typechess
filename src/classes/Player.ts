@@ -92,11 +92,13 @@ export class Bot extends Player {
     this.indexOfMoves = 0;
   }
 
-  play(allPieces: Piece[]): Promise<GameState> {
+  play(allPieces: Piece[], drawingCallback: Function): Promise<GameState> {
     return new Promise(resolve => {
+      let king = allPieces.find(p => p.color === this.color && p instanceof King);
+      let check = king?.isUnderThreat(allPieces);
+      drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
       setTimeout(() => {
         let possibleMoves: Move[] = [];
-        let check = allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces);
 
         possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
         if (possibleMoves.length > 0) {
@@ -151,9 +153,11 @@ export class Human extends Player {
   play(allPieces: Piece[], canvas: any, drawingCallback: Function): Promise<GameState> {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
-      let check = allPieces.find(p => p.color === this.color && p instanceof King)?.isUnderThreat(allPieces);
+      let king = allPieces.find(p => p.color === this.color && p instanceof King);
+      let check = king?.isUnderThreat(allPieces);
       let indexOfMove: number = 0;
 
+      drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
       possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
       if (possibleMoves.length > 0) {
         this.eventListenerForCanvas = (event: any) => {
@@ -162,7 +166,7 @@ export class Human extends Player {
           const y = event.clientY - rect.top;
           this.positionArray.push({positionX: Math.floor(x / 45), positionY: Math.floor(y / 45)});
           if (this.positionArray.length === 1) {
-            drawingCallback(possibleMoves.filter(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY));
+            drawingCallback(possibleMoves.filter(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY), check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
           }
           if (this.positionArray.length === 2) {
             indexOfMove = possibleMoves.findIndex(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY && m.endX === this.positionArray[1].positionX && m.endY === this.positionArray[1].positionY);
@@ -171,7 +175,7 @@ export class Human extends Player {
               canvas.removeEventListener('mousedown', this.eventListenerForCanvas);
             }
             this.positionArray = [];
-            drawingCallback([]);
+            drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
           }
         };
         canvas.addEventListener('mousedown', this.eventListenerForCanvas);

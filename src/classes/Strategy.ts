@@ -59,7 +59,7 @@ export class Strategy {
         if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
             return this.castlingValue;
         }
-        if (numberOfPreviousMoves < 4 && getOpeningMoves(playerColor).includes(move)) {
+        if (numberOfPreviousMoves < 4 && getOpeningMoves(playerColor).findIndex(m => m.startX === move.startX && m.endX === move.endX && m.startY === move.startY && m.endY === move.endY) > -1) {
           return 5 + Math.random();
         }
         if (allPieces[allyPieceIndex] instanceof Pawn) {
@@ -79,7 +79,7 @@ export class Strategy {
         if (isCaseUnderThreat(move.endX, move.endY, allPieces, playerColor)) {
           base = base - this.riskAversionCoefficient * allPieces[allyPieceIndex].value;
         }
-        return base + this. capturingCoefficient * enemyPieceValue;
+        return base + this.capturingCoefficient * enemyPieceValue;
     }
 
     reproduce(): Strategy {
