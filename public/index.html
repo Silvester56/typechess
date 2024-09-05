@@ -6,7 +6,11 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <canvas class="hidden" id="canvas" width="360" height="360"></canvas>
+  <div class="game-container hidden">
+    <div class="game-info"></div>
+    <canvas id="canvas" width="360" height="360"></canvas>
+    <div class="game-log"></div>
+  </div>
   <div class="button-container">
     <button id="button-0" class="game-mode-button">White player, Black bot</button>
     <button id="button-1" class="game-mode-button">Black player, White bot</button>

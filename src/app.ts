@@ -5,6 +5,8 @@ import { Strategy } from './classes/Strategy.js';
 import { Move } from './classes/Move.js';
 
 const canvas: any = document.querySelector('#canvas');
+const gameContainer: any = document.querySelector('.game-container');
+const logDiv: any = document.querySelector('div.game-log');
 const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
@@ -40,10 +42,9 @@ const resetScores = (botArray: Bot[]) => {
   }
 };
 
-const logBotArray = (botArray: Bot[]) => {
-  botArray.forEach((p, index) => {
-    console.log(`${index} ${p.strategy.toString()}`);
-  });
+const logMessage = (message: string) => {
+  logDiv.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+  logDiv.scrollTop = logDiv.scrollHeight;
 };
 
 const drawAdditionalInformation = (moves: Move[], check: {positionX: number, positionY: number}) => {
@@ -59,25 +60,25 @@ async function buttonAction(buttonId: number) {
   let human: Human;
   let whiteSingleGameScore;
   let blackSingleGameScore;
-  let stringToLog: string[] = [];
 
   if (buttonId === 4) {
-    canvas.setAttribute("class", "hidden");
+    gameContainer.setAttribute("class", "game-container hidden");
+    logDiv.innerHTML = "";
     buttons.forEach((b, index) => b.setAttribute("class", index === 4 ? "game-mode-button hidden" : "game-mode-button"));
     return;
   }
-  canvas.setAttribute("class", "");
+  gameContainer.setAttribute("class", "game-container");
   buttons.forEach(b => b.setAttribute("class", "game-mode-button hidden"));
   allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
   human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
   if (buttonId !== 3) {
     while (turn < turnLimit) {
-      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation) : await whiteBots[0].play(allPieces, drawAdditionalInformation);
+      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await whiteBots[0].play(allPieces, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation) : await blackBots[0].play(allPieces, drawAdditionalInformation);
+      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await blackBots[0].play(allPieces, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -85,29 +86,28 @@ async function buttonAction(buttonId: number) {
       turn++;
     }
     if (gameState === GameState.OUT_OF_TURNS) {
-      console.log("Draw because of turn limit");
+      logMessage("Draw because of turn limit");
     } else if (gameState === GameState.WHITE_WIN) {
-      console.log("White win");
+      logMessage("White win");
     } else if (gameState === GameState.BLACK_WIN) {
-      console.log("Black win");
+      logMessage("Black win");
     } else if (gameState === GameState.DRAW) {
-      console.log("Draw");
+      logMessage("Draw");
     }
   } else {
     while (generation < 5) {
-      stringToLog = [];
       resetScores(whiteBots);
       resetScores(blackBots);
-      console.log("Generation ", generation);
+      logMessage("Generation " + generation);
       for (let whitePlayerIndex = 0; whitePlayerIndex < whiteBots.length; whitePlayerIndex++) {
         for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation);
+            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation, logMessage);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation);
+            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation, logMessage);
             if (gameState !== GameState.PLAY) {
               break;
             }
@@ -115,13 +115,13 @@ async function buttonAction(buttonId: number) {
             turn++;
           }
           if (gameState === GameState.OUT_OF_TURNS) {
-            stringToLog.push("Draw because of turn limit");
+            logMessage("Draw because of turn limit");
           } else if (gameState === GameState.WHITE_WIN) {
-            stringToLog.push("White win");
+            logMessage("White win");
           } else if (gameState === GameState.BLACK_WIN) {
-            stringToLog.push("Black win");
+            logMessage("Black win");
           } else if (gameState === GameState.DRAW) {
-            stringToLog.push("Draw");
+            logMessage("Draw");
           }
           whiteSingleGameScore = whiteBots[whitePlayerIndex].getScore(allPieces, gameState);
           blackSingleGameScore = blackBots[blackPlayerIndex].getScore(allPieces, gameState);
@@ -134,9 +134,6 @@ async function buttonAction(buttonId: number) {
       }
       whiteBots = whiteBots.sort((a, b) => b.score.winningScore === a.score.winningScore ? b.score.materialScore - a.score.materialScore : b.score.winningScore - a.score.winningScore);
       blackBots = blackBots.sort((a, b) => b.score.winningScore === a.score.winningScore ? b.score.materialScore - a.score.materialScore : b.score.winningScore - a.score.winningScore);
-      console.log(stringToLog);
-      logBotArray(whiteBots);
-      logBotArray(blackBots);
       whiteBots.splice(whiteBots.length / 2);
       blackBots.splice(blackBots.length / 2);
       whiteBots = whiteBots.concat(whiteBots.map(p => p.reproduce()));

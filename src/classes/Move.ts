@@ -28,7 +28,7 @@ export class Move {
   }
 
   toString(): string {
-    let result = positionToString(this.startX, this.startY) + " -> " + positionToString(this.endX, this.endY);
+    let result = positionToString(this.startX, this.startY) + "-" + positionToString(this.endX, this.endY);
 
     switch (this.type) {
       case MoveType.SHORT_CASTLING:
