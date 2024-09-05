@@ -51,7 +51,7 @@ const drawAdditionalInformation = (moves: Move[], check: {positionX: number, pos
   checkToDraw = check;
 }
 
-async function startGame(buttonId: number) {
+async function buttonAction(buttonId: number) {
   let gameState = GameState.PLAY;
   let generation = 0;
   let turn: number = 0;
@@ -61,7 +61,13 @@ async function startGame(buttonId: number) {
   let blackSingleGameScore;
   let stringToLog: string[] = [];
 
-  buttons.forEach(b => b.setAttribute("style", "display: none"));
+  if (buttonId === 4) {
+    canvas.setAttribute("class", "hidden");
+    buttons.forEach((b, index) => b.setAttribute("class", index === 4 ? "game-mode-button hidden" : "game-mode-button"));
+    return;
+  }
+  canvas.setAttribute("class", "");
+  buttons.forEach(b => b.setAttribute("class", "game-mode-button hidden"));
   allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
   human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
@@ -138,14 +144,14 @@ async function startGame(buttonId: number) {
       generation++;
     }
   }
+  buttons.forEach((b, index) => b.setAttribute("class", index === 4 ? "game-mode-button" : "game-mode-button hidden"));
 }
 
 let buttons = document.querySelectorAll('.game-mode-button');
 
 if (buttons) {
   buttons.forEach(b => b.addEventListener("click", () => {
-    canvas.setAttribute("class", "");
-    startGame(Number(b.id.split("-")[1]));
+    buttonAction(Number(b.id.split("-")[1]));
   }));
 }
 
