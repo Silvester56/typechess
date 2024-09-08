@@ -88,7 +88,7 @@ export class Bot extends Player {
     this.indexOfMoves = 0;
   }
 
-  play(allPieces: Piece[], drawingCallback: Function, loggingCallback: Function): Promise<GameState> {
+  play(allPieces: Piece[], drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
     return new Promise(resolve => {
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
       let check = king?.isUnderThreat(allPieces);
@@ -101,7 +101,9 @@ export class Bot extends Player {
           possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove, this.indexOfMoves));
           this.lastMove = possibleMoves[0];
           this.indexOfMoves++;
-          loggingCallback(possibleMoves[0].toString());
+          if (loggingCallback) {
+            loggingCallback(possibleMoves[0].toString());
+          }
           resolve(this.movePiece(allPieces, possibleMoves[0]));
         } else {
           if (check) {
@@ -147,7 +149,7 @@ export class Human extends Player {
     this.eventListenerForCanvas = () => null;
   }
 
-  play(allPieces: Piece[], canvas: any, drawingCallback: Function, loggingCallback: Function): Promise<GameState> {
+  play(allPieces: Piece[], canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
@@ -169,7 +171,9 @@ export class Human extends Player {
           if (this.positionArray.length === 2) {
             indexOfMove = possibleMoves.findIndex(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY && m.endX === this.positionArray[1].positionX && m.endY === this.positionArray[1].positionY);
             if (indexOfMove > -1) {
-              loggingCallback(possibleMoves[indexOfMove].toString());
+              if (loggingCallback) {
+                loggingCallback(possibleMoves[indexOfMove].toString());
+              }
               resolve(this.movePiece(allPieces, possibleMoves[indexOfMove]));
               canvas.removeEventListener('mousedown', this.eventListenerForCanvas);
             }

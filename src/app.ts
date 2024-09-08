@@ -1,5 +1,5 @@
 import { Game } from './classes/Game.js';
-import { Bot, Human, Player, GameState } from './classes/Player.js';
+import { Bot, Human, GameState } from './classes/Player.js';
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 import { Strategy } from './classes/Strategy.js';
 import { Move } from './classes/Move.js';
@@ -11,8 +11,10 @@ const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
 let allPieces: Piece[];
-let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 100));
-let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 100));
+let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
+let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
+let whiteSlowBot = new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
+let blackSlowBot = new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
 let movesToDraw: Move[] = [];
 let checkToDraw: {positionX: number, positionY: number};
 
@@ -74,11 +76,11 @@ async function buttonAction(buttonId: number) {
   human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
   if (buttonId !== 3) {
     while (turn < turnLimit) {
-      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await whiteBots[0].play(allPieces, drawAdditionalInformation, logMessage);
+      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await whiteSlowBot.play(allPieces, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await blackBots[0].play(allPieces, drawAdditionalInformation, logMessage);
+      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await blackSlowBot.play(allPieces, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -101,13 +103,14 @@ async function buttonAction(buttonId: number) {
       logMessage("Generation " + generation);
       for (let whitePlayerIndex = 0; whitePlayerIndex < whiteBots.length; whitePlayerIndex++) {
         for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
+          logMessage(`White bot ${whitePlayerIndex} versus black bot ${blackPlayerIndex}`);
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation, logMessage);
+            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation, logMessage);
+            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
