@@ -1,4 +1,4 @@
-import { Bishop, Color, isCaseUnderThreat, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
+import { Bishop, Color, isCaseUnderThreat, King, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
 import { Move, MoveType } from "./Move.js";
 
 const modifyParameter = (x: number) => {
@@ -28,6 +28,21 @@ const getOpeningMoves = (color: Color): Move[] => {
   return result;
 };
 
+const canMoveCreateACheck = (allPieces: Piece[], move: Move, color: Color): boolean => {
+  let futurePieces: Piece[] = allPieces.map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
+  let allyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
+  let enemyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
+  let enemyKingIndex: number;
+
+  futurePieces[allyPieceIndex].positionX = move.endX;
+  futurePieces[allyPieceIndex].positionY = move.endY;
+  if (enemyPieceIndex > -1) {
+    futurePieces.splice(enemyPieceIndex, 1);
+  }
+  enemyKingIndex = futurePieces.findIndex(p => p.color !== color && p instanceof King);
+  return futurePieces[enemyKingIndex].isUnderThreat(futurePieces);
+}
+
 export class Strategy {
     private capturingCoefficient: number;
     private runAwayCoefficient: number;
@@ -54,7 +69,7 @@ export class Strategy {
         let base = 0;
 
         if (lastMove && lastMove.startX === move.endX && lastMove.startY === move.endY && lastMove.endX === move.startX && lastMove.endY === move.startY) {
-          return -Infinity;
+          base = -5;
         }
         if (move.type === MoveType.SHORT_CASTLING || move.type === MoveType.LONG_CASTLING) {
             return this.castlingValue;
@@ -78,6 +93,9 @@ export class Strategy {
         }
         if (isCaseUnderThreat(move.endX, move.endY, allPieces, playerColor)) {
           base = base - this.riskAversionCoefficient * allPieces[allyPieceIndex].value;
+        }
+        if (canMoveCreateACheck(allPieces, move, playerColor)) {
+          base = base + 8;
         }
         return base + this.capturingCoefficient * enemyPieceValue;
     }
