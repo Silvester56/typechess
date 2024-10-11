@@ -18,7 +18,7 @@ let blackSlowBot = new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.ran
 let movesToDraw: Move[] = [];
 let checkToDraw: { positionX: number, positionY: number };
 
-enum GameMode { WHITE_PLAYER, BLACK_PLAYER, BOTS, TRAINING }
+enum GameMode { WHITE_PLAYER, BLACK_PLAYER, PLAYERS, BOTS, TRAINING }
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -64,6 +64,9 @@ async function buttonAction(buttonId: string) {
     case "blackplayer":
       mainGameLoop(GameMode.BLACK_PLAYER);
       break;
+    case "players":
+      mainGameLoop(GameMode.PLAYERS);
+      break;
     case "bots":
       mainGameLoop(GameMode.BOTS);
       break;
@@ -94,8 +97,8 @@ async function mainGameLoop(gameMode: GameMode) {
   buttons.forEach(b => b.setAttribute("class", "game-mode-button hidden"));
   allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
-  whitePlayer = gameMode === GameMode.WHITE_PLAYER ? new Human(Color.WHITE) : whiteSlowBot;
-  blackPlayer = gameMode === GameMode.BLACK_PLAYER ? new Human(Color.BLACK) : blackSlowBot;
+  whitePlayer = (gameMode === GameMode.WHITE_PLAYER || gameMode === GameMode.PLAYERS) ? new Human(Color.WHITE) : whiteSlowBot;
+  blackPlayer = (gameMode === GameMode.BLACK_PLAYER || gameMode === GameMode.PLAYERS) ? new Human(Color.BLACK) : blackSlowBot;
   if (gameMode != GameMode.TRAINING) {
     while (turn < turnLimit) {
       gameState = await whitePlayer.play(allPieces, canvas, drawAdditionalInformation, logMessage);
