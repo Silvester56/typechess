@@ -16,7 +16,9 @@ let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Str
 let whiteSlowBot = new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
 let blackSlowBot = new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
 let movesToDraw: Move[] = [];
-let checkToDraw: {positionX: number, positionY: number};
+let checkToDraw: { positionX: number, positionY: number };
+
+enum GameMode { WHITE_PLAYER, BLACK_PLAYER, BOTS, TRAINING }
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -49,38 +51,58 @@ const logMessage = (message: string) => {
   logDiv.scrollTop = logDiv.scrollHeight;
 };
 
-const drawAdditionalInformation = (moves: Move[], check: {positionX: number, positionY: number}) => {
+const drawAdditionalInformation = (moves: Move[], check: { positionX: number, positionY: number }) => {
   movesToDraw = moves;
   checkToDraw = check;
 }
 
-async function buttonAction(buttonId: number) {
+async function buttonAction(buttonId: string) {
+  switch (buttonId) {
+    case "whiteplayer":
+      mainGameLoop(GameMode.WHITE_PLAYER);
+      break;
+    case "blackplayer":
+      mainGameLoop(GameMode.BLACK_PLAYER);
+      break;
+    case "bots":
+      mainGameLoop(GameMode.BOTS);
+      break;
+    case "training":
+      mainGameLoop(GameMode.TRAINING);
+      break;
+    case "return":
+      gameContainer.setAttribute("class", "game-container hidden");
+      logDiv.innerHTML = "";
+      buttons.forEach(b => b.setAttribute("class", b.id === "return" ? "game-mode-button hidden" : "game-mode-button"));
+      break;
+    default:
+      break;
+  }
+}
+
+async function mainGameLoop(gameMode: GameMode) {
   let gameState = GameState.PLAY;
   let generation = 0;
   let turn: number = 0;
-  const turnLimit: number = buttonId < 2 ? Infinity : 50;
-  let human: Human;
+  const turnLimit: number = (gameMode === GameMode.TRAINING || gameMode === GameMode.BOTS) ? 50 : Infinity;
+  let whitePlayer: Human | Bot;
+  let blackPlayer: Human | Bot;
   let whiteSingleGameScore;
   let blackSingleGameScore;
 
-  if (buttonId === 4) {
-    gameContainer.setAttribute("class", "game-container hidden");
-    logDiv.innerHTML = "";
-    buttons.forEach((b, index) => b.setAttribute("class", index === 4 ? "game-mode-button hidden" : "game-mode-button"));
-    return;
-  }
   gameContainer.setAttribute("class", "game-container");
   buttons.forEach(b => b.setAttribute("class", "game-mode-button hidden"));
   allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
-  human = new Human(buttonId === 0 ? Color.WHITE : Color.BLACK);
-  if (buttonId !== 3) {
+  whitePlayer = gameMode === GameMode.WHITE_PLAYER ? new Human(Color.WHITE) : whiteSlowBot;
+  blackPlayer = gameMode === GameMode.BLACK_PLAYER ? new Human(Color.BLACK) : blackSlowBot;
+  if (gameMode != GameMode.TRAINING) {
     while (turn < turnLimit) {
-      gameState = buttonId === 0 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await whiteSlowBot.play(allPieces, drawAdditionalInformation, logMessage);
+      gameState = await whitePlayer.play(allPieces, canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = buttonId === 1 ? await human.play(allPieces, canvas, drawAdditionalInformation, logMessage) : await blackSlowBot.play(allPieces, drawAdditionalInformation, logMessage);
+      gameState = await blackPlayer.play(allPieces, canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -101,16 +123,16 @@ async function buttonAction(buttonId: number) {
       resetScores(whiteBots);
       resetScores(blackBots);
       logMessage("Generation " + generation);
-      for (let whitePlayerIndex = 0; whitePlayerIndex < whiteBots.length; whitePlayerIndex++) {
-        for (let blackPlayerIndex = 0; blackPlayerIndex < blackBots.length; blackPlayerIndex++) {
-          logMessage(`White bot ${whitePlayerIndex} versus black bot ${blackPlayerIndex}`);
+      for (let whiteBotIndex = 0; whiteBotIndex < whiteBots.length; whiteBotIndex++) {
+        for (let blackBotIndex = 0; blackBotIndex < blackBots.length; blackBotIndex++) {
+          logMessage(`White bot ${whiteBotIndex} versus black bot ${blackBotIndex}`);
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whitePlayerIndex].play(allPieces, drawAdditionalInformation);
+            gameState = await whiteBots[whiteBotIndex].play(allPieces, canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackPlayerIndex].play(allPieces, drawAdditionalInformation);
+            gameState = await blackBots[blackBotIndex].play(allPieces, canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
@@ -126,12 +148,12 @@ async function buttonAction(buttonId: number) {
           } else if (gameState === GameState.DRAW) {
             logMessage("Draw");
           }
-          whiteSingleGameScore = whiteBots[whitePlayerIndex].getScore(allPieces, gameState);
-          blackSingleGameScore = blackBots[blackPlayerIndex].getScore(allPieces, gameState);
-          whiteBots[whitePlayerIndex].score.winningScore = whiteBots[whitePlayerIndex].score.winningScore + whiteSingleGameScore.winningScore;
-          whiteBots[whitePlayerIndex].score.materialScore = whiteBots[whitePlayerIndex].score.materialScore + whiteSingleGameScore.materialScore;
-          blackBots[blackPlayerIndex].score.winningScore = blackBots[blackPlayerIndex].score.winningScore + blackSingleGameScore.winningScore;
-          blackBots[blackPlayerIndex].score.materialScore = blackBots[blackPlayerIndex].score.materialScore + blackSingleGameScore.materialScore;
+          whiteSingleGameScore = whiteBots[whiteBotIndex].getScore(allPieces, gameState);
+          blackSingleGameScore = blackBots[blackBotIndex].getScore(allPieces, gameState);
+          whiteBots[whiteBotIndex].score.winningScore = whiteBots[whiteBotIndex].score.winningScore + whiteSingleGameScore.winningScore;
+          whiteBots[whiteBotIndex].score.materialScore = whiteBots[whiteBotIndex].score.materialScore + whiteSingleGameScore.materialScore;
+          blackBots[blackBotIndex].score.winningScore = blackBots[blackBotIndex].score.winningScore + blackSingleGameScore.winningScore;
+          blackBots[blackBotIndex].score.materialScore = blackBots[blackBotIndex].score.materialScore + blackSingleGameScore.materialScore;
           allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
         }
       }
@@ -151,7 +173,7 @@ let buttons = document.querySelectorAll('.game-mode-button');
 
 if (buttons) {
   buttons.forEach(b => b.addEventListener("click", () => {
-    buttonAction(Number(b.id.split("-")[1]));
+    buttonAction(b.id);
   }));
 }
 

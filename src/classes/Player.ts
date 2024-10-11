@@ -88,7 +88,7 @@ export class Bot extends Player {
     this.indexOfMoves = 0;
   }
 
-  play(allPieces: Piece[], drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
+  play(allPieces: Piece[], canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
     return new Promise(resolve => {
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
       let check = king?.isUnderThreat(allPieces);
