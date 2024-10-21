@@ -80,11 +80,11 @@ async function mainGameLoop(gameMode: GameMode) {
   blackPlayer = (gameMode === GameMode.BLACK_PLAYER || gameMode === GameMode.PLAYERS) ? new Human(Color.BLACK) : blackSlowBot;
   if (gameMode != GameMode.TRAINING) {
     while (turn < turnLimit) {
-      gameState = await whitePlayer.play(chessGame.allPieces, canvas, drawAdditionalInformation, logMessage);
+      gameState = await whitePlayer.play(chessGame.allPieces(), canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = await blackPlayer.play(chessGame.allPieces, canvas, drawAdditionalInformation, logMessage);
+      gameState = await blackPlayer.play(chessGame.allPieces(), canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -110,11 +110,11 @@ async function mainGameLoop(gameMode: GameMode) {
           logMessage(`White bot ${whiteBotIndex} versus black bot ${blackBotIndex}`);
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whiteBotIndex].play(chessGame.allPieces, canvas, drawAdditionalInformation);
+            gameState = await whiteBots[whiteBotIndex].play(chessGame.allPieces(), canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackBotIndex].play(chessGame.allPieces, canvas, drawAdditionalInformation);
+            gameState = await blackBots[blackBotIndex].play(chessGame.allPieces(), canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
@@ -130,8 +130,8 @@ async function mainGameLoop(gameMode: GameMode) {
           } else if (gameState === GameState.DRAW) {
             logMessage("Draw");
           }
-          whiteSingleGameScore = whiteBots[whiteBotIndex].getScore(chessGame.allPieces, gameState);
-          blackSingleGameScore = blackBots[blackBotIndex].getScore(chessGame.allPieces, gameState);
+          whiteSingleGameScore = whiteBots[whiteBotIndex].getScore(chessGame, gameState);
+          blackSingleGameScore = blackBots[blackBotIndex].getScore(chessGame, gameState);
           whiteBots[whiteBotIndex].score.winningScore = whiteBots[whiteBotIndex].score.winningScore + whiteSingleGameScore.winningScore;
           whiteBots[whiteBotIndex].score.materialScore = whiteBots[whiteBotIndex].score.materialScore + whiteSingleGameScore.materialScore;
           blackBots[blackBotIndex].score.winningScore = blackBots[blackBotIndex].score.winningScore + blackSingleGameScore.winningScore;

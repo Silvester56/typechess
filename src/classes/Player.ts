@@ -1,6 +1,7 @@
 import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './Pieces.js';
 import { Move, MoveType } from './Move.js';
 import { Strategy } from './Strategy.js';
+import { Game } from './Game.js';
 
 export enum GameState { PLAY, WHITE_WIN, BLACK_WIN, DRAW, OUT_OF_TURNS };
 
@@ -122,8 +123,8 @@ export class Bot extends Player {
     return possiblePieces[this.strategy.pieceToPromoteIndex];
   }
 
-  getScore(allPieces: Piece[], gameState: GameState): {winningScore: number, materialScore: number} {
-    let material = allPieces.filter(p => p.color === this.color && p.value !== Infinity).reduce((acc, cur) => acc + cur.value, 0);
+  getScore(chessGame: Game, gameState: GameState): {winningScore: number, materialScore: number} {
+    let material = chessGame.allPieces().filter(p => p.color === this.color && p.value !== Infinity).reduce((acc, cur) => acc + cur.value, 0);
     let game = 0.5;
 
     if (gameState === GameState.WHITE_WIN) {

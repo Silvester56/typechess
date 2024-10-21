@@ -23,16 +23,16 @@ const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
 export class Game {
   private board: Case[][];
   private caseDrawingSize: number;
-  public allPieces: Piece[];
+  private allPiecesOnBoard: Piece[];
 
   constructor() {
     this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK)));
     this.caseDrawingSize = 45;
-    this.allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+    this.allPiecesOnBoard = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
   }
 
   reset() {
-    this.allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+    this.allPiecesOnBoard = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
   }
 
   draw (ctx: any, addNumbers: boolean, checkToDraw: {positionX: number, positionY: number}) {
@@ -41,6 +41,10 @@ export class Game {
         square.draw(ctx, addNumbers, checkToDraw && i === checkToDraw.positionX && j === checkToDraw.positionY, i, j, this.caseDrawingSize);
       });
     });
-    this.allPieces.forEach(piece => piece.draw(ctx));
+    this.allPiecesOnBoard.forEach(piece => piece.draw(ctx));
+  }
+
+  allPieces() {
+    return this.allPiecesOnBoard;
   }
 }
