@@ -1,3 +1,4 @@
+import { Case } from "./Case.js";
 import { Piece, Color, Rook, Knight, Bishop, Queen, King, Pawn } from "./Pieces.js";
 
 const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
@@ -20,11 +21,13 @@ const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
 };
 
 export class Game {
-  private board: boolean[][]; // true : white, false : black
+  private board: Case[][];
+  private caseDrawingSize: number;
   public allPieces: Piece[];
 
   constructor() {
-    this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => (i + j) % 2 === 0));
+    this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK)));
+    this.caseDrawingSize = 45;
     this.allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
   }
 
@@ -35,15 +38,7 @@ export class Game {
   draw (ctx: any, addNumbers: boolean, checkToDraw: {positionX: number, positionY: number}) {
     this.board.forEach((line, i) => {
       line.forEach((square, j) => {
-        ctx.fillStyle = square ? "#f2e1c3" : "#c3a082";
-        if (checkToDraw && i === checkToDraw.positionX && j === checkToDraw.positionY) {
-          ctx.fillStyle = "#aa2222";
-        }
-        ctx.fillRect(i * 45, j * 45, 45, 45);
-        if (addNumbers) {
-          ctx.fillStyle = square ? "#c3a082" : "#f2e1c3";
-          ctx.fillText(`${i}, ${j}`, i * 45 + 10, j * 45 + 10);
-        }
+        square.draw(ctx, addNumbers, checkToDraw && i === checkToDraw.positionX && j === checkToDraw.positionY, i, j, this.caseDrawingSize);
       });
     });
     this.allPieces.forEach(piece => piece.draw(ctx));
