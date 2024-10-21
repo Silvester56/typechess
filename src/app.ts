@@ -1,8 +1,8 @@
 import { Game } from './classes/Game.js';
 import { Bot, Human, GameState } from './classes/Player.js';
-import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './classes/Pieces.js';
 import { Strategy } from './classes/Strategy.js';
 import { Move } from './classes/Move.js';
+import { Color } from './classes/Pieces.js';
 
 const canvas: any = document.querySelector('#canvas');
 const gameContainer: any = document.querySelector('.game-container');
@@ -10,34 +10,14 @@ const logDiv: any = document.querySelector('div.game-log');
 const canvasContext = canvas.getContext('2d');
 
 const chessGame = new Game();
-let allPieces: Piece[];
-let whiteBots = Array.from(Array(10), (_, index) => new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
-let blackBots = Array.from(Array(10), (_, index) => new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
+let whiteBots = Array.from(Array(10), () => new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
+let blackBots = Array.from(Array(10), () => new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 5));
 let whiteSlowBot = new Bot(Color.WHITE, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
 let blackSlowBot = new Bot(Color.BLACK, new Strategy(Math.random(), 1 + Math.random(), 1 + Math.random(), 10 + Math.random(), 0), 1000);
 let movesToDraw: Move[] = [];
 let checkToDraw: { positionX: number, positionY: number };
 
 enum GameMode { WHITE_PLAYER, BLACK_PLAYER, PLAYERS, BOTS, TRAINING }
-
-const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
-  let color = y < 4 ? Color.BLACK : Color.WHITE;
-
-  if (y === 0 || y === 7) {
-    if (x === 0 || x === 7) {
-      return new Rook(x, y, color);
-    } else if (x === 1 || x === 6) {
-      return new Knight(x, y, color);
-    } else if (x === 2 || x === 5) {
-      return new Bishop(x, y, color);
-    } else if (x === 3) {
-      return new Queen(x, y, color);
-    } else {
-      return new King(x, y, color);
-    }
-  }
-  return new Pawn(x, y, color);
-};
 
 const resetScores = (botArray: Bot[]) => {
   for (let botIndex = 0; botIndex < botArray.length; botIndex++) {
@@ -95,17 +75,16 @@ async function mainGameLoop(gameMode: GameMode) {
 
   gameContainer.setAttribute("class", "game-container");
   buttons.forEach(b => b.setAttribute("class", "game-mode-button hidden"));
-  allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
 
   whitePlayer = (gameMode === GameMode.WHITE_PLAYER || gameMode === GameMode.PLAYERS) ? new Human(Color.WHITE) : whiteSlowBot;
   blackPlayer = (gameMode === GameMode.BLACK_PLAYER || gameMode === GameMode.PLAYERS) ? new Human(Color.BLACK) : blackSlowBot;
   if (gameMode != GameMode.TRAINING) {
     while (turn < turnLimit) {
-      gameState = await whitePlayer.play(allPieces, canvas, drawAdditionalInformation, logMessage);
+      gameState = await whitePlayer.play(chessGame.allPieces, canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
-      gameState = await blackPlayer.play(allPieces, canvas, drawAdditionalInformation, logMessage);
+      gameState = await blackPlayer.play(chessGame.allPieces, canvas, drawAdditionalInformation, logMessage);
       if (gameState !== GameState.PLAY) {
         break;
       }
@@ -131,11 +110,11 @@ async function mainGameLoop(gameMode: GameMode) {
           logMessage(`White bot ${whiteBotIndex} versus black bot ${blackBotIndex}`);
           turn = 0;
           while (turn < turnLimit) {
-            gameState = await whiteBots[whiteBotIndex].play(allPieces, canvas, drawAdditionalInformation);
+            gameState = await whiteBots[whiteBotIndex].play(chessGame.allPieces, canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
-            gameState = await blackBots[blackBotIndex].play(allPieces, canvas, drawAdditionalInformation);
+            gameState = await blackBots[blackBotIndex].play(chessGame.allPieces, canvas, drawAdditionalInformation);
             if (gameState !== GameState.PLAY) {
               break;
             }
@@ -151,13 +130,13 @@ async function mainGameLoop(gameMode: GameMode) {
           } else if (gameState === GameState.DRAW) {
             logMessage("Draw");
           }
-          whiteSingleGameScore = whiteBots[whiteBotIndex].getScore(allPieces, gameState);
-          blackSingleGameScore = blackBots[blackBotIndex].getScore(allPieces, gameState);
+          whiteSingleGameScore = whiteBots[whiteBotIndex].getScore(chessGame.allPieces, gameState);
+          blackSingleGameScore = blackBots[blackBotIndex].getScore(chessGame.allPieces, gameState);
           whiteBots[whiteBotIndex].score.winningScore = whiteBots[whiteBotIndex].score.winningScore + whiteSingleGameScore.winningScore;
           whiteBots[whiteBotIndex].score.materialScore = whiteBots[whiteBotIndex].score.materialScore + whiteSingleGameScore.materialScore;
           blackBots[blackBotIndex].score.winningScore = blackBots[blackBotIndex].score.winningScore + blackSingleGameScore.winningScore;
           blackBots[blackBotIndex].score.materialScore = blackBots[blackBotIndex].score.materialScore + blackSingleGameScore.materialScore;
-          allPieces = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+          chessGame.reset();
         }
       }
       whiteBots = whiteBots.sort((a, b) => b.score.winningScore === a.score.winningScore ? b.score.materialScore - a.score.materialScore : b.score.winningScore - a.score.winningScore);
@@ -185,9 +164,6 @@ const animationLoop = () => {
   canvasContext.clearRect(0, 0, 500, 500);
   chessGame.draw(canvasContext, false, checkToDraw);
   movesToDraw.forEach(m => m.draw(canvasContext));
-  if (allPieces) {
-    allPieces.forEach(piece => piece.draw(canvasContext));
-  }
 };
 
 animationLoop();
