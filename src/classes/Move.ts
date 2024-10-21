@@ -12,15 +12,15 @@ export class Move {
   readonly endX: number;
   readonly endY: number;
   readonly type: MoveType;
-  readonly additionalPieceToMove: (Piece | undefined);
+  readonly additionalPiece: (Piece | undefined);
 
-  constructor(sx: number, sy: number, ex: number, ey: number, t: MoveType = MoveType.NORMAL, additionalPiece?: (Piece | undefined)) {
+  constructor(sx: number, sy: number, ex: number, ey: number, t: MoveType = MoveType.NORMAL, ap?: Piece) {
     this.startX = sx;
     this.startY = sy;
     this.endX = ex;
     this.endY = ey;
     this.type = t;
-    this.additionalPieceToMove = additionalPiece;
+    this.additionalPiece = ap;
   }
 
   range(): number {

@@ -1,6 +1,7 @@
 import { Case } from "./Case.js";
-import { Move } from "./Move.js";
+import { Move, MoveType } from "./Move.js";
 import { Piece, Color, Rook, Knight, Bishop, Queen, King, Pawn } from "./Pieces.js";
+import { Player } from "./Player.js";
 
 const returnPieceFromStartingPosition = (x: number, y: number): (Piece | null) => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
@@ -44,9 +45,40 @@ export class Game {
     });
   }
 
-  movePiece(move: Move) {
-    this.board[move.endX][move.endY].eventualPiece = this.board[move.startX][move.startY].eventualPiece;
+  movePiece(move: Move, player?: Player) {
+    let moveEndingCase = this.board[move.endX][move.endY];
+
+    for (let index = 0; index < this.allPieces().length; index++) {
+      this.allPieces()[index].enPassantTarget = false;
+    }
+    moveEndingCase.eventualPiece = this.board[move.startX][move.startY].eventualPiece;
     this.board[move.startX][move.startY].eventualPiece = null;
+    if (moveEndingCase.eventualPiece) {
+      moveEndingCase.eventualPiece.firstMove = false;
+      moveEndingCase.eventualPiece.positionX = move.endX;
+      moveEndingCase.eventualPiece.positionY = move.endY;
+      if (moveEndingCase.eventualPiece instanceof Pawn) {
+        if (move.range() === 2) {
+          moveEndingCase.eventualPiece.enPassantTarget = true;
+        }
+        if (player) {
+          if ((moveEndingCase.eventualPiece.color === Color.WHITE && moveEndingCase.eventualPiece.positionY === 0) || (moveEndingCase.eventualPiece.color === Color.BLACK && moveEndingCase.eventualPiece.positionY === 7)) {
+            moveEndingCase.eventualPiece = player.promote(moveEndingCase.eventualPiece.positionX, moveEndingCase.eventualPiece.positionY);
+          }
+        }
+      }
+    }
+    if (move.additionalPiece) {
+      if (move.type === MoveType.EN_PASSANT) {
+        this.board[move.additionalPiece.positionX][move.additionalPiece.positionY].eventualPiece = null;
+      }
+      if (move.type === MoveType.SHORT_CASTLING) {
+        this.movePiece(new Move(move.additionalPiece.positionX, move.additionalPiece.positionY, 5, move.additionalPiece.positionY));
+      }
+      if (move.type === MoveType.LONG_CASTLING) {
+        this.movePiece(new Move(move.additionalPiece.positionX, move.additionalPiece.positionY, 3, move.additionalPiece.positionY));
+      }
+    }
   }
 
   allPieces() {

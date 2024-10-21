@@ -12,53 +12,6 @@ export abstract class Player {
     this.color = c;
   }
 
-  movePiece(chessGame: Game, move: Move): GameState {
-    let allPieces: Piece[] = chessGame.allPieces();
-    let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
-    let enemyPieceIndex = allPieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
-    let lastEnPassantTargetPieceIndex = allPieces.findIndex(p => p.enPassantTarget);
-    let gameState = GameState.PLAY;
-
-    if (allyPieceIndex > -1) {
-      if (lastEnPassantTargetPieceIndex > -1) {
-        allPieces[lastEnPassantTargetPieceIndex].enPassantTarget = false;
-      }
-      allPieces[allyPieceIndex].positionX = move.endX;
-      allPieces[allyPieceIndex].positionY = move.endY;
-      chessGame.movePiece(move);
-      allPieces[allyPieceIndex].firstMove = false;
-      if (allPieces[allyPieceIndex] instanceof Pawn) {
-        if (move.range() === 2) {
-          allPieces[allyPieceIndex].enPassantTarget = true;
-        }
-      }
-      if (move.type === MoveType.EN_PASSANT) {
-        enemyPieceIndex = lastEnPassantTargetPieceIndex;
-      }
-      if (move.type === MoveType.SHORT_CASTLING) {
-        if (move.additionalPieceToMove) {
-          chessGame.movePiece(new Move(move.additionalPieceToMove.positionX, move.additionalPieceToMove.positionY, 5, move.additionalPieceToMove.positionY));
-          move.additionalPieceToMove.positionX = 5;
-        }
-      }
-      if (move.type === MoveType.LONG_CASTLING) {
-        if (move.additionalPieceToMove) {
-          chessGame.movePiece(new Move(move.additionalPieceToMove.positionX, move.additionalPieceToMove.positionY, 3, move.additionalPieceToMove.positionY));
-          move.additionalPieceToMove.positionX = 3;
-        }
-      }
-      if (allPieces[allyPieceIndex] instanceof Pawn) {
-        if ((allPieces[allyPieceIndex].color === Color.WHITE && allPieces[allyPieceIndex].positionY === 0) || (allPieces[allyPieceIndex].color === Color.BLACK && allPieces[allyPieceIndex].positionY === 7)) {
-          allPieces[allyPieceIndex] = this.promote(allPieces[allyPieceIndex].positionX, allPieces[allyPieceIndex].positionY);
-        }
-      }
-      if (enemyPieceIndex > -1) {
-        allPieces.splice(enemyPieceIndex, 1);
-      }
-    }
-    return gameState;
-  }
-
   kingIsSafeAfterMove(allPieces: Piece[], move: Move) {
     let futurePieces: Piece[] = allPieces.map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
     let allyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
@@ -110,7 +63,8 @@ export class Bot extends Player {
           if (loggingCallback) {
             loggingCallback(possibleMoves[0].toString());
           }
-          resolve(this.movePiece(chessGame, possibleMoves[0]));
+          chessGame.movePiece(possibleMoves[0]);
+          resolve(GameState.PLAY);
         } else {
           if (check) {
             resolve(this.color === Color.WHITE ? GameState.BLACK_WIN : GameState.WHITE_WIN);
@@ -180,7 +134,8 @@ export class Human extends Player {
               if (loggingCallback) {
                 loggingCallback(possibleMoves[indexOfMove].toString());
               }
-              resolve(this.movePiece(chessGame, possibleMoves[indexOfMove]));
+              chessGame.movePiece(possibleMoves[indexOfMove]);
+              resolve(GameState.PLAY);
               canvas.removeEventListener('mousedown', this.eventListenerForCanvas);
             }
             this.positionArray = [];
