@@ -12,18 +12,20 @@ export abstract class Player {
     this.color = c;
   }
 
-  movePiece(allPieces: Piece[], move: Move): GameState {
+  movePiece(chessGame: Game, move: Move): GameState {
+    let allPieces: Piece[] = chessGame.allPieces();
     let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
     let enemyPieceIndex = allPieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
     let lastEnPassantTargetPieceIndex = allPieces.findIndex(p => p.enPassantTarget);
     let gameState = GameState.PLAY;
-  
+
     if (allyPieceIndex > -1) {
       if (lastEnPassantTargetPieceIndex > -1) {
         allPieces[lastEnPassantTargetPieceIndex].enPassantTarget = false;
       }
       allPieces[allyPieceIndex].positionX = move.endX;
       allPieces[allyPieceIndex].positionY = move.endY;
+      chessGame.movePiece(move);
       allPieces[allyPieceIndex].firstMove = false;
       if (allPieces[allyPieceIndex] instanceof Pawn) {
         if (move.range() === 2) {
@@ -35,11 +37,13 @@ export abstract class Player {
       }
       if (move.type === MoveType.SHORT_CASTLING) {
         if (move.additionalPieceToMove) {
+          chessGame.movePiece(new Move(move.additionalPieceToMove.positionX, move.additionalPieceToMove.positionY, 5, move.additionalPieceToMove.positionY));
           move.additionalPieceToMove.positionX = 5;
         }
       }
       if (move.type === MoveType.LONG_CASTLING) {
         if (move.additionalPieceToMove) {
+          chessGame.movePiece(new Move(move.additionalPieceToMove.positionX, move.additionalPieceToMove.positionY, 3, move.additionalPieceToMove.positionY));
           move.additionalPieceToMove.positionX = 3;
         }
       }
@@ -89,7 +93,8 @@ export class Bot extends Player {
     this.indexOfMoves = 0;
   }
 
-  play(allPieces: Piece[], canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
+  play(chessGame: Game, canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
+    let allPieces: Piece[] = chessGame.allPieces()
     return new Promise(resolve => {
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
       let check = king?.isUnderThreat(allPieces);
@@ -105,7 +110,7 @@ export class Bot extends Player {
           if (loggingCallback) {
             loggingCallback(possibleMoves[0].toString());
           }
-          resolve(this.movePiece(allPieces, possibleMoves[0]));
+          resolve(this.movePiece(chessGame, possibleMoves[0]));
         } else {
           if (check) {
             resolve(this.color === Color.WHITE ? GameState.BLACK_WIN : GameState.WHITE_WIN);
@@ -150,7 +155,8 @@ export class Human extends Player {
     this.eventListenerForCanvas = () => null;
   }
 
-  play(allPieces: Piece[], canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
+  play(chessGame: Game, canvas: any, drawingCallback: Function, loggingCallback?: Function): Promise<GameState> {
+    let allPieces: Piece[] = chessGame.allPieces()
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
@@ -165,7 +171,6 @@ export class Human extends Player {
           const x = event.clientX - rect.left;
           const y = event.clientY - rect.top;
           this.positionArray.push({positionX: Math.floor(x / 45), positionY: Math.floor(y / 45)});
-          console.log(x, y, Math.floor(x / 45), Math.floor(y / 45));
           if (this.positionArray.length === 1) {
             drawingCallback(possibleMoves.filter(m => m.startX === this.positionArray[0].positionX && m.startY === this.positionArray[0].positionY), check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
           }
@@ -175,7 +180,7 @@ export class Human extends Player {
               if (loggingCallback) {
                 loggingCallback(possibleMoves[indexOfMove].toString());
               }
-              resolve(this.movePiece(allPieces, possibleMoves[indexOfMove]));
+              resolve(this.movePiece(chessGame, possibleMoves[indexOfMove]));
               canvas.removeEventListener('mousedown', this.eventListenerForCanvas);
             }
             this.positionArray = [];

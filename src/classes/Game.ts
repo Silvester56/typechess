@@ -1,7 +1,8 @@
 import { Case } from "./Case.js";
+import { Move } from "./Move.js";
 import { Piece, Color, Rook, Knight, Bishop, Queen, King, Pawn } from "./Pieces.js";
 
-const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
+const returnPieceFromStartingPosition = (x: number, y: number): (Piece | null) => {
   let color = y < 4 ? Color.BLACK : Color.WHITE;
 
   if (y === 0 || y === 7) {
@@ -16,23 +17,23 @@ const returnPieceFromStartingPosition = (x: number, y: number): Piece => {
     } else {
       return new King(x, y, color);
     }
+  } else if (y === 1 || y === 6) {
+    return new Pawn(x, y, color);
   }
-  return new Pawn(x, y, color);
+  return null;
 };
 
 export class Game {
   private board: Case[][];
   private caseDrawingSize: number;
-  private allPiecesOnBoard: Piece[];
 
   constructor() {
-    this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK)));
+    this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK, returnPieceFromStartingPosition(i, j))));
     this.caseDrawingSize = 45;
-    this.allPiecesOnBoard = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
   }
 
   reset() {
-    this.allPiecesOnBoard = Array.from(Array(32), (_, number) => returnPieceFromStartingPosition(number % 8, number < 16 ? Math.floor(number / 8) : 4 + Math.floor(number / 8)));
+    this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK, returnPieceFromStartingPosition(i, j))));
   }
 
   draw (ctx: any, addNumbers: boolean, checkToDraw: {positionX: number, positionY: number}) {
@@ -41,10 +42,16 @@ export class Game {
         square.draw(ctx, addNumbers, checkToDraw && i === checkToDraw.positionX && j === checkToDraw.positionY, i, j, this.caseDrawingSize);
       });
     });
-    this.allPiecesOnBoard.forEach(piece => piece.draw(ctx));
+  }
+
+  movePiece(move: Move) {
+    this.board[move.endX][move.endY].eventualPiece = this.board[move.startX][move.startY].eventualPiece;
+    this.board[move.startX][move.startY].eventualPiece = null;
   }
 
   allPieces() {
-    return this.allPiecesOnBoard;
+    let result: Piece[] = [];
+
+    return this.board.flat().reduce((acc, cur) => cur.eventualPiece ? acc.concat([cur.eventualPiece]) : acc, result);
   }
 }
