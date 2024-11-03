@@ -23,4 +23,8 @@ export class Case {
       this.eventualPiece.draw(ctx);
     }
   }
+
+  getClone(): Case {
+    return new Case(this.color, this.eventualPiece ? Object.assign(Object.create(Object.getPrototypeOf(this.eventualPiece)), this.eventualPiece) : null);
+  }
 }

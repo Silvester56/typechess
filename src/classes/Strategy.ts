@@ -1,5 +1,6 @@
-import { Bishop, Color, isCaseUnderThreat, King, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
+import { Bishop, Color, King, Knight, Pawn, Piece, Queen, Rook } from "./Pieces.js";
 import { Move, MoveType } from "./Move.js";
+import { Game } from "./Game.js";
 
 const modifyParameter = (x: number) => {
   let signs = [-1, 1];
@@ -28,8 +29,8 @@ const getOpeningMoves = (color: Color): Move[] => {
   return result;
 };
 
-const canMoveCreateACheck = (allPieces: Piece[], move: Move, color: Color): boolean => {
-  let futurePieces: Piece[] = allPieces.map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
+const canMoveCreateACheck = (chessGame: Game, move: Move, color: Color): boolean => {
+  let futurePieces: Piece[] = chessGame.allPieces().map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
   let allyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
   let enemyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
   let enemyKingIndex: number;
@@ -40,7 +41,7 @@ const canMoveCreateACheck = (allPieces: Piece[], move: Move, color: Color): bool
     futurePieces.splice(enemyPieceIndex, 1);
   }
   enemyKingIndex = futurePieces.findIndex(p => p.color !== color && p instanceof King);
-  return futurePieces[enemyKingIndex].isUnderThreat(futurePieces);
+  return futurePieces[enemyKingIndex].isUnderThreat(chessGame);
 }
 
 export class Strategy {
@@ -62,7 +63,8 @@ export class Strategy {
       return `${this.capturingCoefficient} ${this.runAwayCoefficient} ${this.riskAversionCoefficient} ${this.castlingValue}`;
     }
 
-    getMoveValue(allPieces: Piece[], move: Move, playerColor: Color, lastMove: Move | undefined, numberOfPreviousMoves: number): number {
+    getMoveValue(chessGame: Game, move: Move, playerColor: Color, lastMove: Move | undefined, numberOfPreviousMoves: number): number {
+        let allPieces = chessGame.allPieces();
         let enemyPieceValue = allPieces.find(p => p.positionX === move.endX && p.positionY === move.endY)?.value || 0;
         let distanceToEnd = playerColor === Color.WHITE ? move.startY : (7 - move.startY);
         let allyPieceIndex = allPieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
@@ -88,13 +90,13 @@ export class Strategy {
         } else if (allPieces[allyPieceIndex] instanceof Queen) {
           base = 1;
         }
-        if (isCaseUnderThreat(move.startX, move.startY, allPieces, playerColor)) {
+        if (chessGame.isCaseUnderThreat(move.startX, move.startY, playerColor)) {
           base = base + this.runAwayCoefficient * allPieces[allyPieceIndex].value;
         }
-        if (isCaseUnderThreat(move.endX, move.endY, allPieces, playerColor)) {
+        if (chessGame.isCaseUnderThreat(move.endX, move.endY, playerColor)) {
           base = base - this.riskAversionCoefficient * allPieces[allyPieceIndex].value;
         }
-        if (canMoveCreateACheck(allPieces, move, playerColor)) {
+        if (canMoveCreateACheck(chessGame, move, playerColor)) {
           base = base + 8;
         }
         return base + this.capturingCoefficient * enemyPieceValue;

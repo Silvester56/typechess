@@ -12,19 +12,13 @@ export abstract class Player {
     this.color = c;
   }
 
-  kingIsSafeAfterMove(allPieces: Piece[], move: Move) {
-    let futurePieces: Piece[] = allPieces.map(p => Object.assign(Object.create(Object.getPrototypeOf(p)), p));
-    let allyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.startX && p.positionY === move.startY);
-    let enemyPieceIndex: number = futurePieces.findIndex(p => p.positionX === move.endX && p.positionY === move.endY);
+  kingIsSafeAfterMove(chessGame: Game, move: Move) {
+    let futureChessGame: Game = chessGame.getClone();
     let kingIndex: number;
 
-    futurePieces[allyPieceIndex].positionX = move.endX;
-    futurePieces[allyPieceIndex].positionY = move.endY;
-    if (enemyPieceIndex > -1) {
-      futurePieces.splice(enemyPieceIndex, 1);
-    }
-    kingIndex = futurePieces.findIndex(p => p.color === this.color && p instanceof King);
-    return !futurePieces[kingIndex].isUnderThreat(futurePieces);
+    futureChessGame.movePiece(move);
+    kingIndex = futureChessGame.allPieces().findIndex(p => p.color === this.color && p instanceof King);
+    return !futureChessGame.allPieces()[kingIndex].isUnderThreat(futureChessGame);
   }
 
   abstract promote(x: number, y: number): Piece;
@@ -50,14 +44,14 @@ export class Bot extends Player {
     let allPieces: Piece[] = chessGame.allPieces()
     return new Promise(resolve => {
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
-      let check = king?.isUnderThreat(allPieces);
+      let check = king?.isUnderThreat(chessGame);
       drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
       setTimeout(() => {
         let possibleMoves: Move[] = [];
 
-        possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
+        possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(chessGame)), possibleMoves).filter(m => this.kingIsSafeAfterMove(chessGame, m));
         if (possibleMoves.length > 0) {
-          possibleMoves.sort((a, b) => this.strategy.getMoveValue(allPieces, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(allPieces, a, this.color, this.lastMove, this.indexOfMoves));
+          possibleMoves.sort((a, b) => this.strategy.getMoveValue(chessGame, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(chessGame, a, this.color, this.lastMove, this.indexOfMoves));
           this.lastMove = possibleMoves[0];
           this.indexOfMoves++;
           if (loggingCallback) {
@@ -114,11 +108,11 @@ export class Human extends Player {
     return new Promise(resolve => {
       let possibleMoves: Move[] = [];
       let king = allPieces.find(p => p.color === this.color && p instanceof King);
-      let check = king?.isUnderThreat(allPieces);
+      let check = king?.isUnderThreat(chessGame);
       let indexOfMove: number = 0;
 
       drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
-      possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(allPieces)), possibleMoves).filter(m => this.kingIsSafeAfterMove(allPieces, m));
+      possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(chessGame)), possibleMoves).filter(m => this.kingIsSafeAfterMove(chessGame, m));
       if (possibleMoves.length > 0) {
         this.eventListenerForCanvas = (event: any) => {
           const rect = canvas.getBoundingClientRect()
