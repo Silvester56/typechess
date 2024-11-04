@@ -54,6 +54,7 @@ async function buttonAction(buttonId: string) {
       mainGameLoop(GameMode.TRAINING);
       break;
     case "return":
+      chessGame.reset();
       gameContainer.setAttribute("class", "game-container hidden");
       logDiv.innerHTML = "";
       buttons.forEach(b => b.setAttribute("class", b.id === "return" ? "game-mode-button hidden" : "game-mode-button"));
@@ -148,7 +149,7 @@ async function mainGameLoop(gameMode: GameMode) {
       generation++;
     }
   }
-  buttons.forEach((b, index) => b.setAttribute("class", index === 4 ? "game-mode-button" : "game-mode-button hidden"));
+  buttons.forEach(b => b.setAttribute("class", b.id === "return" ? "game-mode-button" : "game-mode-button hidden"));
 }
 
 let buttons = document.querySelectorAll('.game-mode-button');
