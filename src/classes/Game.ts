@@ -1,6 +1,6 @@
 import { Case } from "./Case.js";
 import { Move, MoveType } from "./Move.js";
-import { Piece, Color, Rook, Knight, Bishop, Queen, King, Pawn, UnallowedCaseWhileSeeking } from "./Pieces.js";
+import { Piece, Color, Rook, Knight, Bishop, Queen, King, Pawn, SeekerRestriction } from "./Pieces.js";
 import { Player } from "./Player.js";
 
 const returnPieceFromStartingPosition = (x: number, y: number): (Piece | null) => {
@@ -41,7 +41,7 @@ export class Game {
     this.board = Array.from(Array(8), (x, i) => Array.from(Array(8), (y, j) => new Case((i + j) % 2 === 0 ? Color.WHITE : Color.BLACK, returnPieceFromStartingPosition(i, j))));
   }
 
-  draw(ctx: any, addNumbers: boolean, checkToDraw: {positionX: number, positionY: number}) {
+  draw(ctx: any, addNumbers: boolean, checkToDraw: { positionX: number, positionY: number }) {
     this.board.forEach((line, i) => {
       line.forEach((square, j) => {
         square.draw(ctx, addNumbers, checkToDraw && i === checkToDraw.positionX && j === checkToDraw.positionY, i, j, this.caseDrawingSize);
@@ -59,7 +59,41 @@ export class Game {
     return new Game(boardClone);
   }
 
-  seekPossibleNormalMoves(startX: number, startY: number, seekerXCallback: Function, seekerYCallback: Function, movesLimit: number = Infinity, unallowedCase: UnallowedCaseWhileSeeking = UnallowedCaseWhileSeeking.NONE): Move[] {
+  kingIsSafeAfterMove(playerColor: Color, move: Move) {
+    let futureChessGame: Game = this.getClone();
+    let kingIndex: number;
+
+    futureChessGame.movePiece(move);
+    kingIndex = futureChessGame.allPieces().findIndex(p => p.color === playerColor && p instanceof King);
+    return !futureChessGame.allPieces()[kingIndex].isUnderThreat(futureChessGame);
+  }
+
+  possiblePieceMoves(startX: number, startY: number, piece: Piece): Move[] {
+    let result: Move[] = [];
+
+    if (piece.seekerCallbackList) {
+      piece.seekerCallbackList.forEach(s => {
+        result = result.concat(this.seekPossibleMoves(startX, startY, s.seekerCallbackX, s.seekerCallbackY, piece.seekerMovesLimit, s.restriction));
+      });
+    }
+
+    return result;
+  }
+
+  possiblePlayerMoves(playerColor: Color): Move[] {
+    let result: Move[] = [];
+
+    this.board.forEach((line, i) => {
+      line.forEach((square, j) => {
+        if (square.eventualPiece && square.eventualPiece.color === playerColor) {
+          result = result.concat(this.possiblePieceMoves(i, j, square.eventualPiece));
+        }
+      });
+    });
+    return result.filter(m => this.kingIsSafeAfterMove(playerColor, m));
+  }
+
+  seekPossibleMoves(startX: number, startY: number, seekerXCallback: Function, seekerYCallback: Function, seekerMovesLimit: number, restriction: SeekerRestriction = SeekerRestriction.NONE): Move[] {
     let seekerX = startX;
     let seekerY = startY;
     let result: Move[] = [];
@@ -67,51 +101,48 @@ export class Game {
     let encounteredPiece;
     let search = true;
 
-    while (piece && search && movesLimit > 0) {
-      movesLimit--;
+    if (restriction === SeekerRestriction.MUST_CAPTURE_EN_PASSANT && piece?.color === Color.BLACK && piece instanceof Pawn) {
+      console.log(4);
+    }
+
+    while (piece && search && seekerMovesLimit > 0) {
+      seekerMovesLimit--;
       seekerX = seekerXCallback(seekerX);
       seekerY = seekerYCallback(seekerY);
       if (this.withinBounds(seekerX, seekerY)) {
         encounteredPiece = this.board[seekerX][seekerY].eventualPiece;
-        if (encounteredPiece) {
-          if (encounteredPiece.color === piece.color) {
-            search = false;
-          } else {
-            if (unallowedCase !== UnallowedCaseWhileSeeking.ENEMY) {
-              result.push(new Move(startX, startY, seekerX, seekerY));
+        if (restriction === SeekerRestriction.MUST_CASTLE) {
+          seekerMovesLimit = Infinity;
+          if (piece.firstMove && !piece.isUnderThreat(this)) {
+            if (Math.abs(startX - seekerX) <= 2 && this.isCaseUnderThreat(seekerX, seekerY, piece.color)) {
+              return [];
             }
-            search = false;
+            if (encounteredPiece) {
+              if (encounteredPiece.color === piece.color && encounteredPiece.firstMove && encounteredPiece instanceof Rook) {
+                return [new Move(startX, startY, seekerX === 7 ? 6 : 2, seekerY, seekerX === 7 ? MoveType.SHORT_CASTLING : MoveType.LONG_CASTLING, encounteredPiece)];
+              } else {
+                return [];
+              }
+            }
           }
-        } else if (unallowedCase !== UnallowedCaseWhileSeeking.EMPTY) {
-          result.push(new Move(startX, startY, seekerX, seekerY));
-        }
-      } else {
-        search = false;
-      }
-    }
-    return result;
-  }
-
-  seekPossibleCastlingMoves(startX: number, startY: number, seekerXCallback: Function) {
-    let seekerX = startX;
-    let seekerY = startY;
-    let result: Move[] = [];
-    let piece = this.board[startX][startY].eventualPiece;
-    let encounteredPiece;
-    let search = true;
-
-    while(piece && search) {
-      seekerX = seekerXCallback(seekerX);
-      if (this.withinBounds(seekerX, seekerY)) {
-        encounteredPiece = this.board[seekerX][seekerY].eventualPiece;
-        if (Math.abs(startX - seekerX) <= 2 && this.isCaseUnderThreat(seekerX, seekerY, piece.color)) {
-          return [];
-        }
-        if (encounteredPiece) {
-          if (encounteredPiece.color === piece.color && encounteredPiece.firstMove && encounteredPiece instanceof Rook) {
-            result.push(new Move(startX, startY, seekerX === 7 ? 6 : 2, seekerY, seekerX === 7 ? MoveType.SHORT_CASTLING : MoveType.LONG_CASTLING, encounteredPiece));
-          } else {
-            return [];
+        } else {
+          if (encounteredPiece) {
+            if (encounteredPiece.color === piece.color) {
+              search = false;
+            } else {
+              if (restriction !== SeekerRestriction.CANNOT_CAPTURE) {
+                if (restriction === SeekerRestriction.MUST_CAPTURE_EN_PASSANT) {
+                  if (encounteredPiece.enPassantTarget) {
+                    result.push(new Move(startX, startY, seekerX, seekerY + (piece.color === Color.WHITE ? -1 : 1), MoveType.EN_PASSANT, encounteredPiece));
+                  }
+                } else {
+                  result.push(new Move(startX, startY, seekerX, seekerY));
+                }
+              }
+              search = false;
+            }
+          } else if (restriction !== SeekerRestriction.MUST_CAPTURE && restriction !== SeekerRestriction.MUST_CAPTURE_EN_PASSANT) {
+            result.push(new Move(startX, startY, seekerX, seekerY));
           }
         }
       } else {
@@ -121,37 +152,16 @@ export class Game {
     return result;
   }
 
-  seekPossibleEnPassantMoves(startX: number, startY: number, seekerXOffset: number) {
-    let seekerX = startX + seekerXOffset;
-    let seekerY = startY;
-    let result: Move[] = [];
-    let piece = this.board[startX][startY].eventualPiece;
-    let encounteredPiece;
-
-    if (piece && this.withinBounds(seekerX, seekerY)) {
-      encounteredPiece = this.board[seekerX][seekerY].eventualPiece;
-      if (encounteredPiece) {
-        if (encounteredPiece.color !== piece.color && encounteredPiece.enPassantTarget) {
-          result.push(new Move(startX, startY, seekerX, seekerY + (piece.color === Color.WHITE ? -1 : 1), MoveType.EN_PASSANT, encounteredPiece));
-        }
-      }
-    }
-    return result;
-  }
-
-  getRingMovesWithNoChecks(positionX: number, positionY: number): Move[] {
-    let result: Move[] = [];
-
-    result.push(new Move(positionX, positionY, positionX + 1, positionY + 1));
-    result.push(new Move(positionX, positionY, positionX + 1, positionY));
-    result.push(new Move(positionX, positionY, positionX + 1, positionY - 1));
-    result.push(new Move(positionX, positionY, positionX, positionY + 1));
-    result.push(new Move(positionX, positionY, positionX, positionY - 1));
-    result.push(new Move(positionX, positionY, positionX - 1, positionY + 1));
-    result.push(new Move(positionX, positionY, positionX - 1, positionY));
-    result.push(new Move(positionX, positionY, positionX - 1, positionY - 1));
-
-    return result;
+  getRingMovesWithoutRestrictions(positionX: number, positionY: number): Move[] {
+    return [
+      new Move(positionX, positionY, positionX + 1, positionY + 1),
+      new Move(positionX, positionY, positionX + 1, positionY),
+      new Move(positionX, positionY, positionX + 1, positionY - 1),
+      new Move(positionX, positionY, positionX, positionY + 1),
+      new Move(positionX, positionY, positionX, positionY - 1),
+      new Move(positionX, positionY, positionX - 1, positionY + 1),
+      new Move(positionX, positionY, positionX - 1, positionY),
+      new Move(positionX, positionY, positionX - 1, positionY - 1)];
   }
 
   isCaseUnderThreat(x: number, y: number, allyColor: Color): boolean {
@@ -159,7 +169,7 @@ export class Game {
 
     let enemyKing = this.allPieces().find(p => p.color !== allyColor && p instanceof King);
     if (enemyKing) {
-      moves = this.getRingMovesWithNoChecks(enemyKing.positionX, enemyKing.positionY).concat(this.allPieces().filter(p => p.color !== allyColor && !(p instanceof King)).reduce((acc, cur) => acc.concat(cur.possibleMoves(this)), moves));
+      moves = this.getRingMovesWithoutRestrictions(enemyKing.positionX, enemyKing.positionY).concat(this.allPieces().filter(p => p.color !== allyColor && !(p instanceof King)).reduce((acc, cur) => acc.concat(this.possiblePieceMoves(cur.positionX, cur.positionY, cur)), moves));
     }
     return moves.some(m => m.endX === x && m.endY === y);
   }
@@ -180,6 +190,7 @@ export class Game {
         if (move.range() === 2) {
           moveEndingCase.eventualPiece.enPassantTarget = true;
         }
+        moveEndingCase.eventualPiece.seekerMovesLimit = 1;
         if (player) {
           if ((moveEndingCase.eventualPiece.color === Color.WHITE && moveEndingCase.eventualPiece.positionY === 0) || (moveEndingCase.eventualPiece.color === Color.BLACK && moveEndingCase.eventualPiece.positionY === 7)) {
             moveEndingCase.eventualPiece = player.promote(moveEndingCase.eventualPiece.positionX, moveEndingCase.eventualPiece.positionY);

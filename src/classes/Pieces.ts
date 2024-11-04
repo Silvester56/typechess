@@ -1,9 +1,8 @@
 import { Game } from './Game.js';
-import { Move, MoveType } from './Move.js';
 
 export enum Color { WHITE, BLACK };
 
-export enum UnallowedCaseWhileSeeking { EMPTY, ENEMY, NONE }
+export enum SeekerRestriction { MUST_CAPTURE, CANNOT_CAPTURE, MUST_CAPTURE_EN_PASSANT, MUST_CASTLE, NONE }
 
 export abstract class Piece {
   public positionX: number;
@@ -13,6 +12,8 @@ export abstract class Piece {
   private spriteLoaded = false;
   abstract spriteXPosition: number;
   abstract value: number;
+  public seekerCallbackList: {seekerCallbackX: (x: number) => number, seekerCallbackY: (y: number) => number, restriction?: SeekerRestriction}[] = [];
+  public seekerMovesLimit: number = Infinity;
   readonly color: Color;
   readonly sprite: any;
 
@@ -36,8 +37,6 @@ export abstract class Piece {
   isUnderThreat(chessGame: Game): boolean {
     return chessGame.isCaseUnderThreat(this.positionX, this.positionY, this.color);
   }
-
-  abstract possibleMoves(chessGame: Game): Move[];
 }
 
 export class King extends Piece {
@@ -46,24 +45,40 @@ export class King extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
-
-    if (this.firstMove && !this.isUnderThreat(chessGame)) {
-      result = result.concat(chessGame.seekPossibleCastlingMoves(this.positionX, this.positionY, (x: number) => x + 1));
-      result = result.concat(chessGame.seekPossibleCastlingMoves(this.positionX, this.positionY, (x: number) => x - 1));
-    }
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x + 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x - 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x + 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x - 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x + 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x - 1, 1));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y,
+      restriction: SeekerRestriction.MUST_CASTLE
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y,
+      restriction: SeekerRestriction.MUST_CASTLE
+    }];
+    this.seekerMovesLimit = 1;
   }
 }
 
@@ -73,20 +88,31 @@ export class Queen extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
-
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x - 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x - 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x - 1));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y - 1,
+    }];
   }
 }
 
@@ -96,16 +122,19 @@ export class Rook extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
-
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x - 1));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y - 1,
+    }];
   }
 }
 
@@ -115,16 +144,19 @@ export class Bishop extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
-
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x - 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x + 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x - 1));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y - 1,
+    }];
   }
 }
 
@@ -134,20 +166,32 @@ export class Knight extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
-
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 2, (x: number) => x + 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 2, (x: number) => x - 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 2, (x: number) => x + 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 2, (x: number) => x - 1, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x + 2, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x + 2, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x - 2, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x - 2, 1));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x + 2,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x - 2,
+      seekerCallbackY: y => y + 1,
+    },{
+      seekerCallbackX: x => x + 2,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x - 2,
+      seekerCallbackY: y => y - 1,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y + 2,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y + 2,
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y - 2,
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y - 2,
+    }];
+    this.seekerMovesLimit = 1;
   }
 }
 
@@ -157,17 +201,29 @@ export class Pawn extends Piece {
 
   constructor(x: number, y: number, color: Color) {
     super(x, y, color);
-  }
-
-  possibleMoves(chessGame: Game): Move[] {
-    let result: Move[] = [];
     let direction: number = this.color === Color.WHITE ? -1 : 1;
 
-    result = result.concat(chessGame.seekPossibleEnPassantMoves(this.positionX, this.positionY, -1));
-    result = result.concat(chessGame.seekPossibleEnPassantMoves(this.positionX, this.positionY, 1));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x - 1, (x: number) => x + direction, 1, UnallowedCaseWhileSeeking.EMPTY));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x + 1, (x: number) => x + direction, 1, UnallowedCaseWhileSeeking.EMPTY));
-    result = result.concat(chessGame.seekPossibleNormalMoves(this.positionX, this.positionY, (x: number) => x, (x: number) => x + direction, this.firstMove ? 2 : 1, UnallowedCaseWhileSeeking.ENEMY));
-    return result;
+    this.seekerCallbackList = [{
+      seekerCallbackX: x => x,
+      seekerCallbackY: y => y + direction,
+      restriction: SeekerRestriction.CANNOT_CAPTURE
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y + direction,
+      restriction: SeekerRestriction.MUST_CAPTURE
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y + direction,
+      restriction: SeekerRestriction.MUST_CAPTURE
+    },{
+      seekerCallbackX: x => x - 1,
+      seekerCallbackY: y => y,
+      restriction: SeekerRestriction.MUST_CAPTURE_EN_PASSANT
+    },{
+      seekerCallbackX: x => x + 1,
+      seekerCallbackY: y => y,
+      restriction: SeekerRestriction.MUST_CAPTURE_EN_PASSANT
+    }];
+    this.seekerMovesLimit = 2;
   }
 }

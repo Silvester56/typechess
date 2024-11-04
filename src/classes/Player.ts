@@ -1,5 +1,5 @@
-import { Color, Piece, King, Queen, Rook, Bishop, Knight, Pawn } from './Pieces.js';
-import { Move, MoveType } from './Move.js';
+import { Color, Piece, King, Queen, Rook, Bishop, Knight } from './Pieces.js';
+import { Move } from './Move.js';
 import { Strategy } from './Strategy.js';
 import { Game } from './Game.js';
 
@@ -10,15 +10,6 @@ export abstract class Player {
 
   constructor(c: Color) {
     this.color = c;
-  }
-
-  kingIsSafeAfterMove(chessGame: Game, move: Move) {
-    let futureChessGame: Game = chessGame.getClone();
-    let kingIndex: number;
-
-    futureChessGame.movePiece(move);
-    kingIndex = futureChessGame.allPieces().findIndex(p => p.color === this.color && p instanceof King);
-    return !futureChessGame.allPieces()[kingIndex].isUnderThreat(futureChessGame);
   }
 
   abstract promote(x: number, y: number): Piece;
@@ -49,7 +40,7 @@ export class Bot extends Player {
       setTimeout(() => {
         let possibleMoves: Move[] = [];
 
-        possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(chessGame)), possibleMoves).filter(m => this.kingIsSafeAfterMove(chessGame, m));
+        possibleMoves = chessGame.possiblePlayerMoves(this.color);
         if (possibleMoves.length > 0) {
           possibleMoves.sort((a, b) => this.strategy.getMoveValue(chessGame, b, this.color, this.lastMove, this.indexOfMoves) - this.strategy.getMoveValue(chessGame, a, this.color, this.lastMove, this.indexOfMoves));
           this.lastMove = possibleMoves[0];
@@ -112,7 +103,7 @@ export class Human extends Player {
       let indexOfMove: number = 0;
 
       drawingCallback([], check ? {positionX: king?.positionX, positionY: king?.positionY} : null);
-      possibleMoves = allPieces.filter(p => p.color === this.color).reduce((acc, cur) => acc.concat(cur.possibleMoves(chessGame)), possibleMoves).filter(m => this.kingIsSafeAfterMove(chessGame, m));
+      possibleMoves = chessGame.possiblePlayerMoves(this.color);
       if (possibleMoves.length > 0) {
         this.eventListenerForCanvas = (event: any) => {
           const rect = canvas.getBoundingClientRect()
